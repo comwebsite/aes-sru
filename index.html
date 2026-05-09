@@ -1,107 +1,615 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Электронный дневник</title>
-  <style>
-    body { font-family: Arial, sans-serif; background:#f5f5f5; padding:20px; }
-    h1 { color:#333; }
-    form { margin-bottom:20px; }
-    input { padding:8px; margin-right:10px; }
-    button { padding:8px 12px; }
-    table { border-collapse: collapse; width: 100%; background:#fff; }
-    th, td { border:1px solid #ccc; padding:8px; text-align:left; }
-    th { background:#eee; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Блок управления АЭС С.Р.У.</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Urbanist:wght@300;600;900&display=swap');
+
+        :root {
+            --bg: #050505;
+            --fg: #f4f4f4;
+            --accent: #ffffff;
+            --border: rgba(255, 255, 255, 0.2);
+            --danger-bg: #e0e0e0;
+            --danger-fg: #000000;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--fg) var(--bg);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: 'Urbanist', sans-serif;
+            padding: 30px;
+            max-width: 1600px;
+            margin: 0 auto;
+            line-height: 1.4;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 3rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--fg);
+            padding-bottom: 15px;
+            margin-bottom: 40px;
+            letter-spacing: 5px;
+        }
+
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1200px) {
+            .layout-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Телеметрия */
+        .telemetry-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .metric {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .metric:hover {
+            border-color: var(--fg);
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .metric-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            color: #aaa;
+        }
+
+        .metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+
+        /* Боковая панель (Графика + Таймер) */
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .graphics-container {
+            border: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .svg-icon {
+            width: 120px;
+            height: 120px;
+            stroke: var(--fg);
+            fill: none;
+            stroke-width: 2;
+        }
+
+        /* Вращение атома */
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .atom-orbit { transform-origin: center; animation: spin 10s linear infinite; }
+        .atom-orbit-2 { transform-origin: center; animation: spin 15s linear infinite reverse; }
+
+        .timer-box {
+            border: 1px solid var(--border);
+            padding: 20px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .timer-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.5rem;
+            margin: 15px 0;
+        }
+
+        .timer-controls input {
+            background: transparent;
+            color: var(--fg);
+            border: 1px solid var(--border);
+            padding: 5px 10px;
+            width: 70px;
+            font-family: 'JetBrains Mono', monospace;
+            margin-right: 10px;
+        }
+
+        .timer-controls button {
+            padding: 6px 15px;
+            font-size: 0.9rem;
+        }
+
+        /* Экран логов */
+        .screen-container {
+            border: 2px solid var(--fg);
+            padding: 20px;
+            background-color: #000;
+            margin-bottom: 40px;
+        }
+
+        .screen {
+            height: 350px; /* Увеличен размер экрана */
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            display: flex;
+            flex-direction: column;
+            padding-right: 10px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .log-time { color: #888; margin-right: 15px; }
+        .log-cmd { font-weight: bold; margin-right: 10px; }
+        .log-changes { color: #ccc; font-size: 0.9em; margin-left: 10px; display: block; margin-top: 4px; }
+
+        /* Кнопки */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 50px;
+        }
+
+        button {
+            background-color: transparent;
+            color: var(--fg);
+            border: 1px solid var(--border);
+            padding: 15px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: var(--fg);
+            transition: all 0.3s;
+            z-index: -1;
+        }
+
+        button:hover {
+            border-color: var(--fg);
+            transform: scale(1.02);
+        }
+
+        button:active::before { left: 0; }
+        button:active { color: var(--bg); }
+
+        .btn-az5 {
+            background-color: var(--fg);
+            color: var(--bg);
+            font-weight: 800;
+            font-size: 1.2rem;
+            grid-column: 1 / -1;
+            padding: 25px;
+            border: none;
+        }
+
+        .btn-az5:hover {
+            background-color: var(--danger-bg);
+            color: var(--danger-fg);
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+
+        /* Легенда */
+        .legend {
+            border: 1px solid var(--border);
+            padding: 40px;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .legend h3 {
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .legend ul {
+            list-style: none;
+            column-count: 3;
+            column-gap: 40px;
+        }
+
+        @media (max-width: 900px) { .legend ul { column-count: 2; } }
+        @media (max-width: 600px) { .legend ul { column-count: 1; } }
+
+        .legend li { margin-bottom: 12px; font-size: 0.95rem; }
+        .legend strong { font-family: 'JetBrains Mono', monospace; font-size: 1rem; }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            border-top: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
-  <h1>Электронный дневник</h1>
 
-  <form id="gradeForm">
-    <input id="user" placeholder="Имя ученика" required />
-    <input id="grade" type="number" min="1" max="10" placeholder="Оценка" required />
-    <button type="submit">Добавить</button>
-  </form>
+    <h1>Блок управления АЭС С.Р.У.</h1>
 
-  <button onclick="loadGrades()">Обновить список</button>
+    <div class="layout-grid">
+        <!-- Телеметрия -->
+        <div class="telemetry-board">
+            <div class="metric"><div class="metric-title">Тепл. Мощность</div><div class="metric-value" id="val-thermal">80%</div></div>
+            <div class="metric"><div class="metric-title">Электр. Мощность</div><div class="metric-value" id="val-electric">75%</div></div>
+            <div class="metric"><div class="metric-title">Мощн. Насосов</div><div class="metric-value" id="val-pumps">90%</div></div>
+            <div class="metric"><div class="metric-title">Извлеч. Стержней</div><div class="metric-value" id="val-rods">60%</div></div>
+            <div class="metric"><div class="metric-title">Ур. Комп. Давления</div><div class="metric-value" id="val-pressurizer">55%</div></div>
+            <div class="metric"><div class="metric-title">Влажность Пара</div><div class="metric-value" id="val-humidity">0.5%</div></div>
+            <div class="metric"><div class="metric-title">Конц. Водорода</div><div class="metric-value" id="val-hydrogen">0.1%</div></div>
+            <div class="metric"><div class="metric-title">Содерж. Кислорода</div><div class="metric-value" id="val-oxygen">0.2%</div></div>
+            <div class="metric"><div class="metric-title">Рад. Фон</div><div class="metric-value" id="val-radiation">12%</div></div>
+        </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Ученик</th>
-        <th>Оценки</th>
-        <th>Средний балл</th>
-      </tr>
-    </thead>
-    <tbody id="gradesBody"></tbody>
-  </table>
+        <!-- Боковая панель -->
+        <div class="side-panel">
+            <div class="graphics-container">
+                <!-- Мирный атом -->
+                <svg class="svg-icon" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="5" fill="var(--fg)"/>
+                    <ellipse cx="50" cy="50" rx="40" ry="15" class="atom-orbit"/>
+                    <ellipse cx="50" cy="50" rx="40" ry="15" class="atom-orbit" transform="rotate(60 50 50)"/>
+                    <ellipse cx="50" cy="50" rx="40" ry="15" class="atom-orbit" transform="rotate(120 50 50)"/>
+                </svg>
+                <!-- Активная зона -->
+                <svg class="svg-icon" viewBox="0 0 100 100">
+                    <rect x="20" y="10" width="60" height="80" rx="5" />
+                    <line x1="30" y1="10" x2="30" y2="90" />
+                    <line x1="43" y1="20" x2="43" y2="80" class="atom-orbit-2"/>
+                    <line x1="56" y1="20" x2="56" y2="80" class="atom-orbit"/>
+                    <line x1="70" y1="10" x2="70" y2="90" />
+                    <path d="M 20 80 Q 50 100 80 80" />
+                </svg>
+            </div>
+            
+            <div class="timer-box">
+                <div class="metric-title">Оперативный Таймер</div>
+                <div class="timer-display" id="timer-display">00:00</div>
+                <div class="timer-controls">
+                    <input type="number" id="timer-input" placeholder="Сек" min="1" value="60">
+                    <button onclick="startTimer()">Пуск</button>
+                    <button onclick="stopTimer()">Стоп</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<script>
-const token = "ghp_ТВОЙ_ТОКЕН_СЮДА"; 
-const gistId = "ce3a5b40573fc8a043b8e6f3ccfa0b45"; // твой Gist ID
-const fileName = "grades.json";
+    <!-- Монитор логов -->
+    <div class="screen-container">
+        <div class="screen" id="log-screen">
+            <div class="log-entry">
+                <span class="log-time">[СИСТ]</span><span class="log-cmd">ЗАГРУЗКА</span>
+                Инициализация телеметрии БЩУ... ОПЕРАЦИОННАЯ СРЕДА АКТИВНА.
+            </div>
+        </div>
+    </div>
 
-// Загрузка оценок
-async function loadGrades() {
-  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  const data = await res.json();
-  const content = JSON.parse(data.files[fileName].content);
-  render(content);
+    <!-- Кнопки управления -->
+    <div class="controls-grid">
+        <button onclick="execCmd('Контр. ТМ', 'normal', {thermal: 2, rods: 1})">Контр. ТМ</button>
+        <button onclick="execCmd('Граф. Нагр.', 'normal', {electric: 5, thermal: 3})">Граф. Нагр.</button>
+        <button onclick="execCmd('Давл. 1К', 'normal', {pressurizer: 2, pumps: 1})">Давл. 1К</button>
+        <button onclick="execCmd('Охлажд. АЗ', 'heavy', {thermal: -8, pumps: 15})">Охлажд. АЗ</button>
+        <button onclick="execCmd('Стерж. СУЗ', 'normal', {rods: -15, thermal: -20, electric: -15})">Стерж. СУЗ</button>
+        <button onclick="execCmd('Пров. САОЗ', 'heavy', {pumps: 20, pressurizer: 5})">Пров. САОЗ</button>
+        <button onclick="execCmd('Фикс. Откл.', 'normal', {})">Фикс. Откл.</button>
+        <button onclick="execCmd('Ур. воды ПГ', 'normal', {humidity: 0.2, pumps: 2})">Ур. воды ПГ</button>
+        <button onclick="execCmd('Рад. Обст.', 'alarm', {radiation: 0})">Рад. Обст.</button>
+        <button onclick="execCmd('Герм. ТВС', 'normal', {radiation: -1})">Герм. ТВС</button>
+        <button onclick="execCmd('Синхр. ТГ', 'normal', {electric: 15, thermal: 5})">Синхр. ТГ</button>
+        <button onclick="execCmd('Рез. ДГ', 'heavy', {electric: 10})">Рез. ДГ</button>
+        <button onclick="execCmd('Смена', 'normal', {})">Смена</button>
+        <button onclick="execCmd('Хим. Состав', 'alarm', {hydrogen: -0.1, oxygen: -0.1})">Хим. Состав</button>
+        <button onclick="execCmd('Физ. Изол.', 'normal', {})">Физ. Изол.</button>
+        <button onclick="execCmd('Вибр. Подш.', 'normal', {pumps: -5})">Вибр. Подш.</button>
+        <button onclick="execCmd('ППР', 'heavy', {thermal: -40, electric: -40, rods: -30})">ППР</button>
+        <button onclick="execCmd('Метео', 'normal', {})">Метео</button>
+        <button onclick="execCmd('Дисцип.', 'normal', {})">Дисцип.</button>
+        
+        <!-- Новые 10 кнопок -->
+        <button onclick="execCmd('Бас. Выд.', 'normal', {thermal: -1, pumps: 2})">Бас. Выд.</button>
+        <button onclick="execCmd('Пожар.', 'heavy', {pumps: 10, humidity: 2})">Пожар.</button>
+        <button onclick="execCmd('Дозы Рад.', 'normal', {radiation: 0})">Дозы Рад.</button>
+        <button onclick="execCmd('Спецвент.', 'heavy', {radiation: -3, electric: -2})">Спецвент.</button>
+        <button onclick="execCmd('Обход Турб.', 'normal', {electric: 1})">Обход Турб.</button>
+        <button onclick="execCmd('Охл. Стат.', 'normal', {electric: 2, pumps: 3})">Охл. Стат.</button>
+        <button onclick="execCmd('Подп. 1К', 'heavy', {pressurizer: 10, pumps: 5})">Подп. 1К</button>
+        <button onclick="execCmd('Вак. Конд.', 'normal', {humidity: -0.5, electric: 3})">Вак. Конд.</button>
+        <button onclick="execCmd('Сброс Пара', 'heavy', {pressurizer: -15, humidity: 5, thermal: -5})">Сброс Пара</button>
+        <button onclick="execCmd('Контр. Топл.', 'normal', {radiation: 1, rods: -2})">Контр. Топл.</button>
+
+        <button class="btn-az5" onclick="triggerAZ5()">АЗ-5 (АВАРИЙНАЯ ЗАЩИТА)</button>
+    </div>
+
+    <!-- Легенда -->
+    <div class="legend">
+        <h3>Номенклатура терминала:</h3>
+        <ul>
+            <li><strong>Контр. ТМ</strong> - Контроль тепловой мощности.</li>
+            <li><strong>Граф. Нагр.</strong> - Соблюдение графика нагрузки.</li>
+            <li><strong>Давл. 1К</strong> - Давление в первом контуре.</li>
+            <li><strong>Охлажд. АЗ</strong> - Охлаждение активной зоны.</li>
+            <li><strong>Стерж. СУЗ</strong> - Управление стержнями СУЗ.</li>
+            <li><strong>Пров. САОЗ</strong> - Проверка аварийного охлаждения.</li>
+            <li><strong>Фикс. Откл.</strong> - Фиксация отклонений.</li>
+            <li><strong>Ур. воды ПГ</strong> - Уровень воды в парогенераторах.</li>
+            <li><strong>Рад. Обст.</strong> - Радиационная обстановка.</li>
+            <li><strong>Герм. ТВС</strong> - Герметичность тепловыделяющих сборок.</li>
+            <li><strong>Синхр. ТГ</strong> - Синхронизация турбогенератора.</li>
+            <li><strong>Рез. ДГ</strong> - Резервные дизель-генераторы.</li>
+            <li><strong>Смена</strong> - Прием/сдача смены.</li>
+            <li><strong>Хим. Состав</strong> - Химический состав теплоносителя.</li>
+            <li><strong>Физ. Изол.</strong> - Физическая изоляция сетей.</li>
+            <li><strong>Вибр. Подш.</strong> - Вибрация подшипников.</li>
+            <li><strong>ППР</strong> - Планово-предупредительный ремонт.</li>
+            <li><strong>Метео</strong> - Мониторинг метеоусловий.</li>
+            <li><strong>Дисцип.</strong> - Контроль дисциплины БЩУ.</li>
+            <li><strong>Бас. Выд.</strong> - Контроль бассейна выдержки ОЯТ.</li>
+            <li><strong>Пожар.</strong> - Системы пожаротушения.</li>
+            <li><strong>Дозы Рад.</strong> - Индивидуальные дозы облучения.</li>
+            <li><strong>Спецвент.</strong> - Спецвентиляция и фильтрация.</li>
+            <li><strong>Обход Турб.</strong> - Обход машинного зала турбины.</li>
+            <li><strong>Охл. Стат.</strong> - Охлаждение статора генератора.</li>
+            <li><strong>Подп. 1К</strong> - Подпитка первого контура.</li>
+            <li><strong>Вак. Конд.</strong> - Вакуумная система конденсатора.</li>
+            <li><strong>Сброс Пара</strong> - Аварийный сброс пара в атмосферу.</li>
+            <li><strong>Контр. Топл.</strong> - Контроль перегрузки топлива.</li>
+            <li><strong>АЗ-5</strong> - ПОЛНЫЙ ГЛУШИТЕЛЬ РЕАКТОРА.</li>
+        </ul>
+    </div>
+
+    <footer>
+        ГЕНЕРАЛЬНАЯ ДИРЕКЦИЯ С.Р.У. &copy; 2026 | ДОСТУП УРОВНЯ 1 | МИНСК
+    </footer>
+
+    <script>
+        // Состояние системы (Телеметрия)
+        let state = {
+            thermal: 80, electric: 75, pumps: 90, rods: 60,
+            pressurizer: 55, humidity: 0.5, hydrogen: 0.1,
+            oxygen: 0.2, radiation: 12
+        };
+
+        const logScreen = document.getElementById('log-screen');
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let alarmTimeout;
+
+        function playSound(type) {
+    // Важно: возобновляем контекст, если браузер его "усыпил"
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    
+    const startTime = audioCtx.currentTime;
+
+    if (type === 'normal') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(1200, startTime);
+        gain.gain.setValueAtTime(0.05, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(startTime + 0.1);
+    } 
+    else if (type === 'heavy') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, startTime);
+        osc.frequency.linearRampToValueAtTime(40, startTime + 0.8);
+        gain.gain.setValueAtTime(0.2, startTime);
+        gain.gain.linearRampToValueAtTime(0.01, startTime + 0.8);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(startTime + 0.8);
+    }
+    else if (type === 'alarm') {
+        const duration = 25; // Длительность сирены
+
+        const createSirenLayer = (baseFreq, detuneValue) => {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.detune.setValueAtTime(detuneValue, startTime);
+            
+            // Изначально тишина, чтобы не было щелчка
+            osc.frequency.setValueAtTime(100, startTime);
+
+            // Идеальный цикл воя (4 секунды на подъем-спуск)
+            for (let i = 0; i < duration; i += 4) {
+                osc.frequency.exponentialRampToValueAtTime(baseFreq, startTime + i + 2);
+                osc.frequency.exponentialRampToValueAtTime(100, startTime + i + 4);
+            }
+
+            g.gain.setValueAtTime(0, startTime);
+            g.gain.linearRampToValueAtTime(0.2, startTime + 2); 
+            g.gain.setValueAtTime(0.2, startTime + duration - 3);
+            g.gain.linearRampToValueAtTime(0, startTime + duration);
+
+            osc.connect(g);
+            g.connect(audioCtx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        };
+
+        createSirenLayer(450, 0);   // Слой 1
+        createSirenLayer(452, 15);  // Слой 2 (биение)
+    }
 }
 
-// Сохранение оценки
-async function saveGrade(user, grade) {
-  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  const gist = await res.json();
-  const content = JSON.parse(gist.files[fileName].content);
+        // Обновление DOM
+        function updateUI() {
+            document.getElementById('val-thermal').innerText = Math.max(0, Math.min(110, state.thermal.toFixed(1))) + '%';
+            document.getElementById('val-electric').innerText = Math.max(0, Math.min(110, state.electric.toFixed(1))) + '%';
+            document.getElementById('val-pumps').innerText = Math.max(0, Math.min(100, state.pumps.toFixed(1))) + '%';
+            document.getElementById('val-rods').innerText = Math.max(0, Math.min(100, state.rods.toFixed(1))) + '%';
+            document.getElementById('val-pressurizer').innerText = Math.max(0, Math.min(100, state.pressurizer.toFixed(1))) + '%';
+            document.getElementById('val-humidity').innerText = Math.max(0, state.humidity.toFixed(2)) + '%';
+            document.getElementById('val-hydrogen').innerText = Math.max(0, state.hydrogen.toFixed(2)) + '%';
+            document.getElementById('val-oxygen').innerText = Math.max(0, state.oxygen.toFixed(2)) + '%';
+            document.getElementById('val-radiation').innerText = Math.max(0, state.radiation.toFixed(1)) + ' µSv/h';
+        }
 
-  if (!content[user]) content[user] = [];
-  content[user].push(grade);
+        // Логирование
+        function getTimestamp() {
+            const now = new Date();
+            return `[${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}]`;
+        }
 
-  await fetch(`https://api.github.com/gists/${gistId}`, {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      files: { [fileName]: { content: JSON.stringify(content, null, 2) } }
-    })
-  });
+        function appendLog(cmd, changesMap) {
+            const el = document.createElement('div');
+            el.className = 'log-entry';
+            
+            let changesStr = "";
+            for (let [key, val] of Object.entries(changesMap)) {
+                if (val !== 0) changesStr += ` ${key}: ${val>0?'+':''}${val} |`;
+            }
 
-  loadGrades();
-}
+            el.innerHTML = `
+                <span class="log-time">${getTimestamp()}</span> 
+                <span class="log-cmd">КОМАНДА: ${cmd}</span>
+                <span class="log-changes">${changesStr ? 'ИЗМЕНЕНИЯ: ' + changesStr : 'СТАТУС: СИСТЕМА В НОРМЕ'}</span>
+            `;
+            logScreen.appendChild(el);
+            logScreen.scrollTop = logScreen.scrollHeight;
+        }
 
-// Отображение таблицы
-function render(data) {
-  const body = document.getElementById("gradesBody");
-  body.innerHTML = "";
-  for (const [user, grades] of Object.entries(data)) {
-    const tr = document.createElement("tr");
-    const avg = (grades.reduce((a,b)=>a+b,0) / grades.length).toFixed(2);
-    tr.innerHTML = `
-      <td>${user}</td>
-      <td>${grades.join(", ")}</td>
-      <td>${avg}</td>
-    `;
-    body.appendChild(tr);
-  }
-}
+        // Выполнение команд
+        window.execCmd = function(name, soundType, effects) {
+            playSound(soundType);
+            
+            // Применяем эффекты к состоянию
+            for (let key in effects) {
+                if (state[key] !== undefined) {
+                    state[key] += effects[key];
+                }
+            }
+            
+            // Небольшой фактор случайности для "живости"
+            if (Object.keys(effects).length > 0) {
+                state.humidity += (Math.random() - 0.5) * 0.1;
+                state.radiation += (Math.random() - 0.2) * 0.5;
+            }
 
-// Обработчик формы
-document.getElementById("gradeForm").addEventListener("submit", e => {
-  e.preventDefault();
-  const user = document.getElementById("user").value.trim();
-  const grade = parseInt(document.getElementById("grade").value, 10);
-  if (user && grade) saveGrade(user, grade);
-});
+            updateUI();
+            appendLog(name, effects);
+        };
 
-// При загрузке страницы
-loadGrades();
-</script>
+        // АЗ-5
+        window.triggerAZ5 = function() {
+            playSound('alarm');
+            
+            const oldState = {...state};
+            state.thermal = 0;
+            state.electric = 0;
+            state.rods = 0;
+            state.pumps = 100; // Насосы на максимум для расхолаживания
+            state.pressurizer = 20;
+            state.radiation += 50; // Выброс при резком глушении
+            
+            updateUI();
+            
+            const el = document.createElement('div');
+            el.className = 'log-entry';
+            el.style.color = 'var(--danger-bg)';
+            el.innerHTML = `<span class="log-time">${getTimestamp()}</span> <span class="log-cmd">!!! АЗ-5 !!!</span> <br> СТЕРЖНИ СБРОШЕНЫ. РЕАКТОР ЗАГЛУШЕН.`;
+            logScreen.appendChild(el);
+            logScreen.scrollTop = logScreen.scrollHeight;
+
+            document.body.style.backgroundColor = "white";
+            setTimeout(() => { document.body.style.backgroundColor = "var(--bg)"; }, 150);
+            setTimeout(() => { document.body.style.backgroundColor = "white"; }, 300);
+            setTimeout(() => { document.body.style.backgroundColor = "var(--bg)"; }, 450);
+        };
+
+        // Таймер
+        let timerInterval;
+        let timerSeconds = 0;
+        const timerDisplay = document.getElementById('timer-display');
+
+        window.startTimer = function() {
+            clearInterval(timerInterval);
+            timerSeconds = parseInt(document.getElementById('timer-input').value) || 60;
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                updateTimerDisplay();
+                if (timerSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    playSound('alarm');
+                    appendLog('ТАЙМЕР', {'СТАТУС': 'ВРЕМЯ ИСТЕКЛО'});
+                }
+            }, 1000);
+        };
+
+        window.stopTimer = function() {
+            clearInterval(timerInterval);
+        };
+
+        function updateTimerDisplay() {
+            const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+            const s = String(timerSeconds % 60).padStart(2, '0');
+            timerDisplay.innerText = `${m}:${s}`;
+        }
+
+        // Инициализация
+        updateUI();
+    </script>
 </body>
 </html>
