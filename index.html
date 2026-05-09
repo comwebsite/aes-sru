@@ -459,7 +459,7 @@
         osc.stop(startTime + 0.8);
     }
     else if (type === 'alarm') {
-        const duration = 25; // Длительность сирены
+        const duration = 90; // Длительность сирены
 
         const createSirenLayer = (baseFreq, detuneValue) => {
             const osc = audioCtx.createOscillator();
