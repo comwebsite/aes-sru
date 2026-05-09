@@ -11,17 +11,14 @@
             --bg: #000000;
             --fg: #ffffff;
             --border: #ffffff;
-            --danger: #ffffff; /* Брутализм: опасность выделяется инверсией, а не цветом */
             --panel: #0a0a0a;
+            --danger: #ff0000;
+            --warn: #ffff00;
+            --cool: #00aaff;
+            --safe: #ffffff;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            scrollbar-width: thin;
-            scrollbar-color: var(--fg) var(--bg);
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; scrollbar-color: var(--fg) var(--bg); }
 
         body {
             background-color: var(--bg);
@@ -34,13 +31,7 @@
             line-height: 1.4;
         }
 
-        .container {
-            width: 100%;
-            max-width: 1600px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+        .container { width: 100%; max-width: 1920px; display: flex; flex-direction: column; gap: 40px; }
 
         header {
             border-bottom: 4px solid var(--border);
@@ -51,29 +42,21 @@
             text-transform: uppercase;
         }
 
-        h1 {
-            font-size: 3rem;
-            font-weight: 800;
-            letter-spacing: -2px;
-        }
-
-        .sys-status {
-            font-size: 1.2rem;
-            font-weight: bold;
-            animation: blink 2s infinite;
-        }
-
+        h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -2px; }
+        .sys-status { font-size: 1.2rem; font-weight: bold; animation: blink 2s infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
         /* Верхний блок: Графика и Таймер */
         .top-section {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             border: 2px solid var(--border);
             padding: 20px;
             background: var(--panel);
         }
+
+        @media (max-width: 1200px) { .top-section { grid-template-columns: 1fr; } }
 
         .visual-box {
             display: flex;
@@ -81,34 +64,37 @@
             align-items: center;
             justify-content: center;
             border: 1px dashed var(--border);
-            padding: 10px;
+            padding: 20px;
             position: relative;
+            min-height: 200px;
         }
 
         .visual-title {
             position: absolute;
-            top: 10px;
+            top: 5px;
             left: 10px;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
+            background: var(--bg);
+            padding: 0 5px;
         }
 
-        .svg-icon { width: 120px; height: 120px; stroke: var(--fg); fill: none; stroke-width: 2; }
-        
+        /* SVG Анимации */
+        .svg-icon { width: 100%; height: 250px; stroke: var(--fg); fill: none; stroke-width: 2; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .atom-spin { transform-origin: center; animation: spin 12s linear infinite; }
         
-        .timer-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border: 1px dashed var(--border);
-        }
+        @keyframes rodAnim1 { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
+        @keyframes rodAnim2 { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(20px); } }
+        @keyframes rodAnim3 { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        
+        .rod-1 { animation: rodAnim1 4s ease-in-out infinite; stroke-width: 4; stroke: var(--fg); }
+        .rod-2 { animation: rodAnim2 6s ease-in-out infinite; stroke-width: 4; stroke: var(--fg); }
+        .rod-3 { animation: rodAnim3 5s ease-in-out infinite; stroke-width: 4; stroke: var(--fg); }
 
-        .timer-display { font-size: 3.5rem; font-weight: 800; margin: 10px 0; }
-        .timer-controls { display: flex; gap: 10px; }
-        .timer-controls input { background: var(--bg); color: var(--fg); border: 1px solid var(--fg); padding: 5px; width: 80px; font-family: inherit; }
+        .timer-display { font-size: 3rem; font-weight: 800; margin: 10px 0; }
+        .timer-controls { display: flex; gap: 5px; }
+        .timer-controls input { background: var(--bg); color: var(--fg); border: 1px solid var(--fg); padding: 5px; width: 60px; font-family: inherit; }
 
         /* Телеметрия */
         .telemetry {
@@ -118,80 +104,95 @@
         }
 
         .metric {
-            border: 2px solid var(--border);
-            padding: 15px;
-            background: var(--panel);
-            display: flex;
-            flex-direction: column;
-            transition: 0.2s;
-        }
-
-        .metric:hover { background: var(--fg); color: var(--bg); }
+    border: 2px solid var(--border);
+    padding: 40px 20px; /* Увеличили верхний и нижний отступы с 15 до 25 */
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Центрируем содержимое по вертикали */
+    min-height: 120px;       /* Устанавливаем минимальную высоту */
+    transition: 0.2s;
+}
         .metric-title { font-size: 0.75rem; text-transform: uppercase; opacity: 0.8; margin-bottom: 5px; }
         .metric-val { font-size: 2rem; font-weight: 800; }
+        .alert-bg { background-color: var(--danger) !important; color: white !important; animation: blink 1s infinite; }
 
-        /* Монитор логов */
+        /* Центр: Логи и Большая Карта ТВС */
+        .center-panel {
+            display: grid;
+            grid-template-columns: 1fr 750px;
+            gap: 20px;
+        }
+
+        @media (max-width: 1000px) { .center-panel { grid-template-columns: 1fr; } }
+
         .log-screen {
             border: 4px solid var(--border);
             background-color: var(--bg);
-            height: 800px;
+            height: 600px;
             overflow-y: auto;
             padding: 20px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             display: flex;
             flex-direction: column;
         }
 
-        .log-entry { margin-bottom: 8px; border-bottom: 1px dotted #444; padding-bottom: 5px; }
-        .log-time { font-weight: bold; margin-right: 15px; }
+        .log-entry { margin-bottom: 8px; border-bottom: 1px dotted #333; padding-bottom: 5px; }
+        .log-time { font-weight: bold; margin-right: 15px; color: #888; }
         .log-cmd { text-transform: uppercase; margin-right: 10px; border: 1px solid var(--fg); padding: 0 4px; }
-        .log-alert { background: var(--fg); color: var(--bg); font-weight: bold; padding: 2px 5px; }
+        .log-alert { background: var(--fg); color: var(--bg); font-weight: bold; padding: 2px 5px; text-transform: uppercase; }
+        .log-critical { background: var(--danger); color: white; font-weight: bold; padding: 2px 5px; }
+
+        /* Большая Карта ТВС */
+        .tvs-large-container {
+            border: 4px solid var(--border);
+            background: var(--panel);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .tvs-status-text { margin-top: 15px; font-weight: bold; font-size: 1.2rem; }
+
+        .tvs-grid {
+            display: grid;
+            /* 14x14 сетка для формы круга */
+            grid-template-columns: repeat(14, 1fr);
+            gap: 3px;
+            width: 100%;
+            max-width: 380px;
+            aspect-ratio: 1;
+        }
+
+        .tvs-cell {
+            background-color: var(--safe);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: background-color 0.8s ease;
+        }
 
         /* Кнопки */
-        .controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px;
-        }
+        .controls { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
 
         button {
-            background-color: var(--bg);
-            color: var(--fg);
-            border: 2px solid var(--border);
-            padding: 15px 10px;
-            font-family: inherit;
-            font-size: 0.9rem;
-            font-weight: 700;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: all 0.1s;
+            background-color: var(--bg); color: var(--fg); border: 2px solid var(--border);
+            padding: 18px 10px; font-family: inherit; font-size: 0.95rem; font-weight: 700;
+            cursor: pointer; text-transform: uppercase; transition: all 0.1s;
         }
-
         button:hover { background-color: var(--fg); color: var(--bg); }
         button:active { transform: scale(0.96); }
 
-        .btn-az5 {
-            grid-column: 1 / -1;
-            font-size: 1.5rem;
-            padding: 25px;
-            border: 4px solid var(--border);
-        }
+        .btn-az5 { grid-column: 1 / -1; font-size: 1.5rem; padding: 20px; border: 4px solid var(--border); }
+        .btn-action { border-color: #888; }
 
-        /* Легенда */
-        .legend {
-            border: 2px solid var(--border);
-            padding: 30px;
-            background: var(--panel);
-        }
-
-        .legend h3 { margin-bottom: 20px; font-size: 1.5rem; text-transform: uppercase; }
-        .legend ul { list-style: none; column-count: 3; column-gap: 40px; }
+        .legend { border: 2px solid var(--border); padding: 20px; background: var(--panel); font-size: 0.8rem; }
+        .legend ul { list-style: none; column-count: 3; column-gap: 20px; }
         @media (max-width: 1000px) { .legend ul { column-count: 2; } }
         @media (max-width: 600px) { .legend ul { column-count: 1; } }
-        .legend li { margin-bottom: 10px; font-size: 0.85rem; }
-        .legend strong { font-size: 1rem; }
-
-        footer { text-align: center; padding: 20px; font-size: 0.8rem; text-transform: uppercase; border-top: 2px solid var(--border); margin-top: 20px; }
+        .legend li { margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 18px; }
+        footer { text-align: center; padding: 20px; font-size: 0.8rem; border-top: 2px solid var(--border); margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -200,7 +201,7 @@
     <header>
         <div>
             <h1>БЩУ АЭС С.Р.У.</h1>
-            <div>ОБЪЕКТ: РБМК-1000 | УРОВЕНЬ ДОСТУПА: ОПЕРАТОР</div>
+            <div>ОБЪЕКТ: РБМК-1000 | АВТОСОХРАНЕНИЕ: АКТИВНО</div>
         </div>
         <div class="sys-status" id="sys-status">СИСТЕМА ФУНКЦИОНИРУЕТ</div>
     </header>
@@ -208,27 +209,31 @@
     <!-- Визуал и Таймер -->
     <div class="top-section">
         <div class="visual-box">
-            <div class="visual-title">Схема атома</div>
+            <div class="visual-title">Символ Реактора</div>
             <svg class="svg-icon" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="6" fill="var(--fg)"/>
-                <ellipse cx="50" cy="50" rx="40" ry="12" class="atom-spin"/>
-                <ellipse cx="50" cy="50" rx="40" ry="12" class="atom-spin" transform="rotate(60 50 50)"/>
-                <ellipse cx="50" cy="50" rx="40" ry="12" class="atom-spin" transform="rotate(120 50 50)"/>
+                <ellipse cx="50" cy="50" rx="35" ry="10" class="atom-spin"/>
+                <ellipse cx="50" cy="50" rx="35" ry="10" class="atom-spin" transform="rotate(60 50 50)"/>
+                <ellipse cx="50" cy="50" rx="35" ry="10" class="atom-spin" transform="rotate(120 50 50)"/>
             </svg>
         </div>
+        
         <div class="visual-box">
             <div class="visual-title">СЕЧЕНИЕ АКТИВНОЙ ЗОНЫ</div>
             <svg class="svg-icon" viewBox="0 0 100 100">
-                <rect x="25" y="15" width="50" height="70" />
-                <line x1="30" y1="15" x2="30" y2="85" stroke-dasharray="4" />
-                <line x1="40" y1="15" x2="40" y2="60" stroke-width="3" /> <!-- Стержень 1 -->
-                <line x1="50" y1="15" x2="50" y2="85" stroke-dasharray="4" />
-                <line x1="60" y1="15" x2="60" y2="40" stroke-width="3" /> <!-- Стержень 2 -->
-                <line x1="70" y1="15" x2="70" y2="85" stroke-dasharray="4" />
-                <rect x="20" y="85" width="60" height="5" fill="var(--fg)"/>
+                <rect x="20" y="10" width="60" height="80" fill="none" />
+                <line x1="20" y1="90" x2="80" y2="90" stroke-width="4" stroke="var(--fg)" />
+                <line x1="20" y1="10" x2="80" y2="10" stroke-width="2" stroke="var(--fg)" />
+                <line x1="30" y1="10" x2="30" y2="85" stroke-dasharray="2" stroke-width="1"/>
+                <line x1="30" y1="20" x2="30" y2="50" class="rod-1" />
+                <line x1="50" y1="10" x2="50" y2="85" stroke-dasharray="2" stroke-width="1"/>
+                <line x1="50" y1="15" x2="50" y2="60" class="rod-2" />
+                <line x1="70" y1="10" x2="70" y2="85" stroke-dasharray="2" stroke-width="1"/>
+                <line x1="70" y1="30" x2="70" y2="70" class="rod-3" />
             </svg>
         </div>
-        <div class="timer-box">
+
+        <div class="visual-box">
             <div class="visual-title">ОПЕРАТИВНЫЙ ТАЙМЕР</div>
             <div class="timer-display" id="timer-val">00:00</div>
             <div class="timer-controls">
@@ -247,302 +252,302 @@
         <div class="metric"><div class="metric-title">Извлеч. Стержней</div><div class="metric-val" id="val-rod">64.5%</div></div>
         <div class="metric"><div class="metric-title">Ур. Комп. Давл.</div><div class="metric-val" id="val-pres">55.0%</div></div>
         <div class="metric"><div class="metric-title">Влажность Пара</div><div class="metric-val" id="val-hum">0.45%</div></div>
-        <div class="metric"><div class="metric-title">Конц. Водорода</div><div class="metric-val" id="val-h2">0.05%</div></div>
-        <div class="metric"><div class="metric-title">Конц. Кислорода</div><div class="metric-val" id="val-o2">0.12%</div></div>
-        <div class="metric"><div class="metric-title">Радиац. Фон</div><div class="metric-val" id="val-rad">14 µSv</div></div>
+        <div class="metric" id="box-h2"><div class="metric-title">Конц. Водорода</div><div class="metric-val" id="val-h2">0.05%</div></div>
+        <div class="metric" id="box-o2"><div class="metric-title">Конц. Кислорода</div><div class="metric-val" id="val-o2">0.12%</div></div>
+        <div class="metric" id="box-rad"><div class="metric-title">Радиац. Фон</div><div class="metric-val" id="val-rad">14 µSv</div></div>
     </div>
 
-    <!-- Экран -->
-    <div class="log-screen" id="log-screen">
-        <div class="log-entry">
-            <span class="log-time">[СИСТЕМА]</span> ИНИЦИАЛИЗАЦИЯ БЩУ... ЗАВЕРШЕНО.
+    <!-- Центральная панель -->
+    <div class="center-panel">
+        <div class="log-screen" id="log-screen"></div>
+        
+        <div class="tvs-large-container">
+            <div class="visual-title">КАРТОГРАММА АКТИВНОЙ ЗОНЫ</div>
+            <div class="tvs-grid" id="tvs-map">
+                <!-- Генерируется через JS -->
+            </div>
+            <div class="tvs-status-text" id="tvs-status-text">СТАТУС: НОРМА</div>
         </div>
     </div>
 
-    <!-- Кнопки -->
+    <!-- Кнопки Управления -->
     <div class="controls">
-        <button onclick="cmd('Контр. ТМ', 'normal', {therm: 1.5, rod: 0.5})">Контр. ТМ</button>
-        <button onclick="cmd('Граф. Нагр.', 'normal', {elec: 5, therm: 3})">Граф. Нагр.</button>
+        <button class="btn-action" onclick="cmd('Поднять СУЗ', 'normal', {rod: 5, therm: 8, elec: 3}); triggerTVS('hot')">↑ Поднять Стерж.</button>
+        <button class="btn-action" onclick="cmd('Опустить СУЗ', 'heavy', {rod: -5, therm: -12, elec: -5}); triggerTVS('cool')">↓ Опустить Стерж.</button>
+        <button class="btn-action" onclick="cmd('+ H2', 'normal', {h2: 0.5})">+ H2 (Водород)</button>
+        <button class="btn-action" onclick="cmd('- H2', 'normal', {h2: -0.5})">- H2 (Водород)</button>
+        <button onclick="cmd('Контр. ТМ', 'normal', {therm: 1})">Контр. ТМ</button>
+        <button onclick="cmd('Граф. Нагр.', 'normal', {elec: 5})">Граф. Нагр.</button>
         <button onclick="cmd('Давл. 1К', 'normal', {pres: 2.5, pump: 1})">Давл. 1К</button>
-        <button onclick="cmd('Охлажд. АЗ', 'heavy', {therm: -10, pump: 15})">Охлажд. АЗ</button>
-        <button onclick="cmd('Стерж. СУЗ', 'normal', {rod: -12, therm: -18, elec: -10})">Стерж. СУЗ</button>
-        <button onclick="cmd('Пров. САОЗ', 'heavy', {pump: 20, pres: 8})">Пров. САОЗ</button>
+        <button onclick="cmd('Охлажд. АЗ', 'heavy', {therm: -15, pump: 20})">Охлажд. АЗ</button>
+        <button onclick="cmd('Стерж. СУЗ', 'normal', {rod: -12, therm: -18})">Стерж. СУЗ</button>
+        <button onclick="cmd('Пров. САОЗ', 'heavy', {pump: 25, pres: 8})">Пров. САОЗ</button>
         <button onclick="cmd('Фикс. Откл.', 'normal', {})">Фикс. Откл.</button>
-        <button onclick="cmd('Ур. воды ПГ', 'normal', {hum: -0.1, pump: 2})">Ур. воды ПГ</button>
+        <button onclick="cmd('Ур. воды ПГ', 'normal', {hum: -0.2, pump: 2})">Ур. воды ПГ</button>
         <button onclick="cmd('Рад. Обст.', 'alarm', {rad: 0})">Рад. Обст.</button>
         <button onclick="cmd('Герм. ТВС', 'normal', {rad: -2})">Герм. ТВС</button>
-        <button onclick="cmd('Синхр. ТГ', 'normal', {pump: -3, elec: 12, therm: 5})">Синхр. ТГ</button>
-        <button onclick="cmd('Рез. ДГ', 'heavy', {elec: 20})">Рез. ДГ</button>
+        <button onclick="cmd('Синхр. ТГ', 'normal', {pump: -5, elec: 15, therm: 5})">Синхр. ТГ</button>
+        <button onclick="cmd('Рез. ДГ', 'heavy', {elec: 25})">Рез. ДГ</button>
         <button onclick="cmd('Смена', 'normal', {})">Смена</button>
         <button onclick="cmd('Хим. Состав', 'alarm', {o2: -0.05})">Хим. Состав</button>
         <button onclick="cmd('Физ. Изол.', 'normal', {})">Физ. Изол.</button>
         <button onclick="cmd('Вибр. Подш.', 'normal', {pump: -5})">Вибр. Подш.</button>
-        <button onclick="cmd('ППР', 'heavy', {therm: -40, elec: -40, rod: -30})">ППР</button>
+        <button onclick="cmd('ППР', 'heavy', {therm: -50, elec: -40, rod: -40})">ППР</button>
         <button onclick="cmd('Метео', 'normal', {})">Метео</button>
         <button onclick="cmd('Дисцип.', 'normal', {})">Дисцип.</button>
-        <button onclick="cmd('Бас. Выд.', 'normal', {therm: -2, pump: 4})">Бас. Выд.</button>
-        <button onclick="cmd('Пожар.', 'heavy', {pump: 15, hum: 0.3})">Пожар.</button>
+        <button onclick="cmd('Бас. Выд.', 'normal', {therm: -3, pump: 5})">Бас. Выд.</button>
+        <button onclick="cmd('Пожар.', 'heavy', {pump: 15, hum: 0.5})">Пожар.</button>
         <button onclick="cmd('Дозы Рад.', 'normal', {})">Дозы Рад.</button>
-        <button onclick="cmd('Спецвент.', 'heavy', {rad: -5, elec: -2})">Спецвент.</button>
-        <button onclick="cmd('+ H2', 'normal', {h2: 0.1})">+ H2 (Водород)</button>
-        <button onclick="cmd('- H2', 'normal', {h2: -0.1})">- H2 (Водород)</button>
+        <button onclick="cmd('Спецвент.', 'heavy', {rad: -10, elec: -5})">Спецвент.</button>
         <button onclick="cmd('Обход Турб.', 'normal', {elec: 2})">Обход Турб.</button>
         <button onclick="cmd('Охл. Стат.', 'normal', {elec: 3, pump: 5})">Охл. Стат.</button>
-        <button onclick="cmd('Подп. 1К', 'heavy', {pres: 12, pump: 8})">Подп. 1К</button>
-        <button onclick="cmd('Сброс Пара', 'heavy', {pres: -20, hum: 0.5, therm: -8})">Сброс Пара</button>
+        <button onclick="cmd('Подп. 1К', 'heavy', {pres: 15, pump: 10})">Подп. 1К</button>
+        <button onclick="cmd('Сброс Пара', 'heavy', {pres: -30, hum: 1.0, therm: -15})">Сброс Пара</button>
         
         <button class="btn-az5" onclick="triggerAZ5()">АЗ-5 (АВАРИЙНАЯ ЗАЩИТА)</button>
     </div>
 
-    <!-- Легенда -->
+    <!-- Полная Легенда -->
     <div class="legend">
-        <h3>НОМЕНКЛАТУРА ТЕРМИНАЛА:</h3>
+        <div class="visual-title" style="position:relative; margin-bottom: 10px;">РАСШИФРОВКА НОМЕНКЛАТУРЫ</div>
         <ul>
-            <li><strong>Контр. ТМ</strong> - Контроль тепловой мощности.</li>
-            <li><strong>Граф. Нагр.</strong> - Соблюдение графика нагрузки.</li>
-            <li><strong>Давл. 1К</strong> - Давление в первом контуре.</li>
-            <li><strong>Охлажд. АЗ</strong> - Охлаждение активной зоны.</li>
-            <li><strong>Стерж. СУЗ</strong> - Управление стержнями СУЗ.</li>
-            <li><strong>Пров. САОЗ</strong> - Проверка аварийного охлаждения.</li>
-            <li><strong>Фикс. Откл.</strong> - Фиксация отклонений.</li>
-            <li><strong>Ур. воды ПГ</strong> - Уровень воды в парогенераторах.</li>
-            <li><strong>Рад. Обст.</strong> - Радиационная обстановка.</li>
-            <li><strong>Герм. ТВС</strong> - Герметичность ТВС.</li>
-            <li><strong>Синхр. ТГ</strong> - Синхронизация турбогенератора.</li>
-            <li><strong>Рез. ДГ</strong> - Резервные дизель-генераторы.</li>
-            <li><strong>Смена</strong> - Прием/сдача смены.</li>
-            <li><strong>Хим. Состав</strong> - Химический состав теплоносителя.</li>
-            <li><strong>Физ. Изол.</strong> - Физическая изоляция сетей.</li>
-            <li><strong>Вибр. Подш.</strong> - Вибрация подшипников.</li>
-            <li><strong>ППР</strong> - Планово-предупредительный ремонт.</li>
-            <li><strong>Метео</strong> - Мониторинг метеоусловий.</li>
-            <li><strong>Дисцип.</strong> - Контроль дисциплины.</li>
-            <li><strong>Бас. Выд.</strong> - Бассейн выдержки ОЯТ.</li>
-            <li><strong>Пожар.</strong> - Системы пожаротушения.</li>
-            <li><strong>Дозы Рад.</strong> - Дозы радиационного облучения.</li>
-            <li><strong>Спецвент.</strong> - Спецвентиляция и фильтрация.</li>
-            <li><strong>+ H2 / - H2</strong> - Регулировка концентрации водорода.</li>
-            <li><strong>Обход Турб.</strong> - Обход турбины.</li>
-            <li><strong>Охл. Стат.</strong> - Охлаждение статора.</li>
-            <li><strong>Подп. 1К</strong> - Подпитка первого контура.</li>
-            <li><strong>Сброс Пара</strong> - Аварийный сброс пара.</li>
-            <li><strong>АЗ-5</strong> - КНОПКА ПОЛНОГО ГЛУШЕНИЯ РЕАКТОРА.</li>
+            <li><strong>↑ Поднять Стерж.</strong> - Извлечение стержней-поглотителей.</li>
+            <li><strong>↓ Опустить Стерж.</strong> - Погружение стержней-поглотителей.</li>
+            <li><strong>+ H2 / - H2</strong> - Регулировка концентрации водорода в контуре.</li>
+            <li><strong>Контр. ТМ</strong> - Контроль тепловой мощности реактора.</li>
+            <li><strong>Граф. Нагр.</strong> - Выравнивание графика электрической нагрузки.</li>
+            <li><strong>Давл. 1К</strong> - Корректировка давления в первом контуре.</li>
+            <li><strong>Охлажд. АЗ</strong> - Принудительное охлаждение активной зоны.</li>
+            <li><strong>Стерж. СУЗ</strong> - Калибровка системы управления и защиты.</li>
+            <li><strong>Пров. САОЗ</strong> - Проверка систем аварийного охлаждения.</li>
+            <li><strong>Фикс. Откл.</strong> - Фиксация отклонений в журнал оператора.</li>
+            <li><strong>Ур. воды ПГ</strong> - Выравнивание уровня воды в парогенераторах.</li>
+            <li><strong>Рад. Обст.</strong> - Анализ радиационной обстановки.</li>
+            <li><strong>Герм. ТВС</strong> - Проверка герметичности топливных сборок.</li>
+            <li><strong>Синхр. ТГ</strong> - Синхронизация турбогенератора с сетью.</li>
+            <li><strong>Рез. ДГ</strong> - Запуск резервных дизель-генераторов.</li>
+            <li><strong>Смена</strong> - Процедура приема и сдачи смены.</li>
+            <li><strong>Хим. Состав</strong> - Полный химический анализ теплоносителя.</li>
+            <li><strong>Физ. Изол.</strong> - Физическая изоляция сетей от внешних подключений.</li>
+            <li><strong>Вибр. Подш.</strong> - Контроль вибрации подшипников турбины.</li>
+            <li><strong>ППР</strong> - Планово-предупредительный ремонт (глушение).</li>
+            <li><strong>Метео</strong> - Запрос метеорологических условий района.</li>
+            <li><strong>Дисцип.</strong> - Контроль дисциплины персонала на БЩУ.</li>
+            <li><strong>Бас. Выд.</strong> - Охлаждение бассейна выдержки ОЯТ.</li>
+            <li><strong>Пожар.</strong> - Проверка систем пожаротушения.</li>
+            <li><strong>Дозы Рад.</strong> - Сбор данных о дозах облучения персонала.</li>
+            <li><strong>Спецвент.</strong> - Запуск систем спецвентиляции и фильтрации.</li>
+            <li><strong>Обход Турб.</strong> - Физический обход турбинного зала.</li>
+            <li><strong>Охл. Стат.</strong> - Охлаждение статора генератора.</li>
+            <li><strong>Подп. 1К</strong> - Включение насосов подпитки первого контура.</li>
+            <li><strong>Сброс Пара</strong> - Аварийный сброс давления пара в атмосферу.</li>
+            <li><strong>АЗ-5</strong> - Кнопка полной аварийной защиты (останов реактора).</li>
         </ul>
     </div>
-
-    <footer>
-        ГЕНЕРАЛЬНАЯ ДИРЕКЦИЯ АЭС С.Р.У. &copy; 2026 | СИСТЕМА УПРАВЛЕНИЯ ФИЗИЧЕСКИ ИЗОЛИРОВАНА
-    </footer>
+    <footer>ГЕНЕРАЛЬНАЯ ДИРЕКЦИЯ АЭС С.Р.У. &copy; 2026 | ЛОКАЛЬНАЯ СЕТЬ</footer>
 </div>
 
 <script>
-    // --- СОСТОЯНИЕ СИСТЕМЫ ---
+    // --- СОСТОЯНИЕ И СОХРАНЕНИЕ ---
     let state = {
         therm: 85.0, elec: 78.5, pump: 92.0, rod: 64.5,
         pres: 55.0, hum: 0.45, h2: 0.05, o2: 0.12, rad: 14.0
     };
+    let flags = { radAlert: false, h2Alert: false };
 
-    const UI = {
-        therm: document.getElementById('val-therm'),
-        elec: document.getElementById('val-elec'),
-        pump: document.getElementById('val-pump'),
-        rod: document.getElementById('val-rod'),
-        pres: document.getElementById('val-pres'),
-        hum: document.getElementById('val-hum'),
-        h2: document.getElementById('val-h2'),
-        o2: document.getElementById('val-o2'),
-        rad: document.getElementById('val-rad')
-    };
-
-    const logScreen = document.getElementById('log-screen');
-    
-    // --- АУДИО ДВИЖОК ---
-    let audioCtx;
-    let ambientStarted = false;
-
-    function initAudio() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function saveState() { localStorage.setItem('aes_sru_state', JSON.stringify(state)); }
+    function loadState() {
+        const saved = localStorage.getItem('aes_sru_state');
+        if (saved) {
+            try { state = Object.assign(state, JSON.parse(saved)); } 
+            catch (e) { console.error("Ошибка чтения памяти", e); }
         }
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-
-        // Запуск фонового гула (Амбиент)
-        if (!ambientStarted) {
-            const osc1 = audioCtx.createOscillator();
-            const osc2 = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc1.type = 'sine'; osc1.frequency.value = 40;
-            osc2.type = 'triangle'; osc2.frequency.value = 60;
-            gain.gain.value = 0.03; // Очень тихий гул
-            osc1.connect(gain); osc2.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc1.start(); osc2.start();
-            ambientStarted = true;
-        }
+        addLog('СИСТЕМА', {}, false, 'СЕССИЯ ВОССТАНОВЛЕНА ИЗ ПАМЯТИ');
+        updateUI();
     }
 
-    function playSound(type) {
-        initAudio();
-        const t = audioCtx.currentTime;
-
-        if (type === 'normal') {
-            const osc = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            osc.type = 'square'; osc.frequency.value = 800;
-            g.gain.setValueAtTime(0.05, t);
-            g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-            osc.connect(g); g.connect(audioCtx.destination);
-            osc.start(t); osc.stop(t + 0.1);
-        } 
-        else if (type === 'heavy') {
-            const osc = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(100, t);
-            osc.frequency.linearRampToValueAtTime(40, t + 1.2);
-            g.gain.setValueAtTime(0.2, t);
-            g.gain.linearRampToValueAtTime(0.001, t + 1.2);
-            osc.connect(g); g.connect(audioCtx.destination);
-            osc.start(t); osc.stop(t + 1.2);
+    const UI = {
+        therm: document.getElementById('val-therm'), elec: document.getElementById('val-elec'),
+        pump: document.getElementById('val-pump'), rod: document.getElementById('val-rod'),
+        pres: document.getElementById('val-pres'), hum: document.getElementById('val-hum'),
+        h2: document.getElementById('val-h2'), o2: document.getElementById('val-o2'),
+        rad: document.getElementById('val-rad')
+    };
+    const logScreen = document.getElementById('log-screen');
+    
+    // --- АУДИО ---
+    let audioCtx; let ambientStarted = false;
+    function initAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (!ambientStarted) {
+            const o1 = audioCtx.createOscillator(); const o2 = audioCtx.createOscillator(); const g = audioCtx.createGain();
+            o1.type = 'sine'; o1.frequency.value = 40; o2.type = 'triangle'; o2.frequency.value = 55;
+            g.gain.value = 0.02; o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
+            o1.start(); o2.start(); ambientStarted = true;
         }
-        else if (type === 'alarm') {
-            // Идеальная воздушная сирена 200 - 1000 Гц
-            const duration = 180;
-            const layers = [
-                { f: 1000, detune: 0 },
-                { f: 1005, detune: 10 },
-                { f: 500, detune: -5 }
-            ];
-
+    }
+    function playSound(type) {
+        initAudio(); const t = audioCtx.currentTime;
+        if (type === 'normal') {
+            const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
+            osc.type = 'square'; osc.frequency.value = 800; g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+            osc.connect(g); g.connect(audioCtx.destination); osc.start(t); osc.stop(t + 0.1);
+        } else if (type === 'heavy') {
+            const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, t); osc.frequency.linearRampToValueAtTime(40, t + 1.2);
+            g.gain.setValueAtTime(0.2, t); g.gain.linearRampToValueAtTime(0.001, t + 1.2);
+            osc.connect(g); g.connect(audioCtx.destination); osc.start(t); osc.stop(t + 1.2);
+        } else if (type === 'alarm') {
+            const layers = [{ f: 1000, d: 0 }, { f: 1005, d: 10 }, { f: 500, d: -5 }];
             layers.forEach(l => {
-                const osc = audioCtx.createOscillator();
-                const g = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.detune.value = l.detune;
-                
-                osc.frequency.setValueAtTime(200, t);
-                // Разгон 4 сек, падение 6 сек
-                osc.frequency.exponentialRampToValueAtTime(l.f, t + 4);
-                osc.frequency.exponentialRampToValueAtTime(200, t + 10);
-
-                g.gain.setValueAtTime(0, t);
-                g.gain.linearRampToValueAtTime(0.1, t + 2);
-                g.gain.setValueAtTime(0.1, t + duration - 2);
-                g.gain.linearRampToValueAtTime(0, t + duration);
-
-                osc.connect(g); g.connect(audioCtx.destination);
-                osc.start(t); osc.stop(t + duration);
+                const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
+                osc.type = 'sawtooth'; osc.detune.value = l.d; osc.frequency.setValueAtTime(200, t);
+                osc.frequency.exponentialRampToValueAtTime(l.f, t + 4); osc.frequency.exponentialRampToValueAtTime(200, t + 10);
+                g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.1, t + 2); g.gain.setValueAtTime(0.1, t + 240); g.gain.linearRampToValueAtTime(0, t + 240);
+                osc.connect(g); g.connect(audioCtx.destination); osc.start(t); osc.stop(t + 240);
             });
         }
     }
 
-    // --- ЛОГИКА И UI ---
+    // --- ЛОГИКА ---
     function updateUI() {
-        // Ограничения значений
-        state.therm = Math.max(0, Math.min(110, state.therm));
-        state.elec = Math.max(0, Math.min(110, state.elec));
-        state.pump = Math.max(0, Math.min(100, state.pump));
-        state.rod = Math.max(0, Math.min(100, state.rod));
-        state.pres = Math.max(0, state.pres);
-        state.h2 = Math.max(0, state.h2);
-        state.rad = Math.max(0, state.rad);
+        state.therm = Math.max(0, state.therm); state.elec = Math.max(0, state.elec);
+        state.pump = Math.max(0, Math.min(100, state.pump)); state.rod = Math.max(0, Math.min(100, state.rod));
+        state.pres = Math.max(0, state.pres); state.h2 = Math.max(0, state.h2); state.rad = Math.max(0, state.rad);
 
-        UI.therm.innerText = state.therm.toFixed(1) + '%';
-        UI.elec.innerText = state.elec.toFixed(1) + '%';
-        UI.pump.innerText = state.pump.toFixed(1) + '%';
-        UI.rod.innerText = state.rod.toFixed(1) + '%';
-        UI.pres.innerText = state.pres.toFixed(1) + '%';
-        UI.hum.innerText = state.hum.toFixed(2) + '%';
-        UI.h2.innerText = state.h2.toFixed(2) + '%';
-        UI.o2.innerText = state.o2.toFixed(2) + '%';
+        UI.therm.innerText = state.therm.toFixed(1) + '%'; UI.elec.innerText = state.elec.toFixed(1) + '%';
+        UI.pump.innerText = state.pump.toFixed(1) + '%'; UI.rod.innerText = state.rod.toFixed(1) + '%';
+        UI.pres.innerText = state.pres.toFixed(1) + '%'; UI.hum.innerText = state.hum.toFixed(2) + '%';
+        UI.h2.innerText = state.h2.toFixed(2) + '%'; UI.o2.innerText = state.o2.toFixed(2) + '%';
         UI.rad.innerText = state.rad.toFixed(1) + ' µSv';
+
+        document.getElementById('box-rad').className = (state.rad >= 60) ? 'metric alert-bg' : 'metric';
+        document.getElementById('box-h2').className = (state.h2 >= 2.0) ? 'metric alert-bg' : 'metric';
+        saveState();
     }
 
-    function getTs() {
-        const d = new Date();
-        return `[${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}]`;
-    }
-
-    function addLog(cmdName, changes, isAlert=false) {
+    function addLog(cmdName, changes, isAlert=false, customMsg=null) {
         let chgStr = [];
-        for(let k in changes) { chgStr.push(`${k}: ${changes[k]>0?'+':''}${changes[k]}`); }
-        
-        const div = document.createElement('div');
-        div.className = 'log-entry';
-        let content = `<span class="log-time">${getTs()}</span> <span class="log-cmd">${cmdName}</span> `;
-        if (chgStr.length > 0) content += `> ИЗМЕНЕНИЯ: ${chgStr.join(' | ')}`;
-        else content += `> СТАТУС: НОРМА`;
-        
-        if (isAlert) div.innerHTML = `<span class="log-alert">${content}</span>`;
-        else div.innerHTML = content;
-
-        logScreen.appendChild(div);
-        logScreen.scrollTop = logScreen.scrollHeight;
+        for(let k in changes) chgStr.push(`${k}: ${changes[k]>0?'+':''}${changes[k]}`);
+        const div = document.createElement('div'); div.className = 'log-entry';
+        const ts = `[${new Date().toLocaleTimeString()}]`;
+        if (customMsg) div.innerHTML = `<span class="log-time">${ts}</span> <span class="${isAlert?'log-critical':'log-alert'}">${customMsg}</span>`;
+        else {
+            let content = `<span class="log-time">${ts}</span> <span class="log-cmd">${cmdName}</span> `;
+            content += chgStr.length > 0 ? `> ${chgStr.join(' | ')}` : `> СТАТУС: ОК`;
+            div.innerHTML = isAlert ? `<span class="log-alert">${content}</span>` : content;
+        }
+        logScreen.appendChild(div); logScreen.scrollTop = logScreen.scrollHeight;
     }
 
     window.cmd = function(name, sound, effects) {
         playSound(sound);
-        for(let key in effects) { state[key] += effects[key]; }
-        
-        // Немного хаоса
-        state.hum += (Math.random() - 0.5) * 0.05;
-        state.rad += (Math.random() - 0.2) * 0.5;
-
-        updateUI();
-        addLog(name, effects, sound === 'alarm');
+        for(let key in effects) state[key] += effects[key];
+        updateUI(); addLog(name, effects, sound === 'alarm');
     };
 
     window.triggerAZ5 = function() {
         playSound('alarm');
-        
-        state.therm = 0; state.elec = 0; state.rod = 0;
-        state.pump = 100; state.pres = 20; state.rad += 50;
-        
-        updateUI();
-        addLog('АЗ-5', {therm: -100, elec: -100, rod: -100}, true);
-        
-        const div = document.createElement('div');
-        div.className = 'log-entry';
-        div.innerHTML = `<span class="log-alert">ВНИМАНИЕ! СТЕРЖНИ-ПОГЛОТИТЕЛИ СБРОШЕНЫ. ЦЕПНАЯ РЕАКЦИЯ ОСТАНОВЛЕНА!</span>`;
-        logScreen.appendChild(div);
-        logScreen.scrollTop = logScreen.scrollHeight;
-
+        state.therm = 0; state.elec = 0; state.rod = 0; state.pump = 100; state.pres = 20; state.rad += 20;
+        updateUI(); addLog('АЗ-5', {}, true, 'КРИТИЧЕСКИЙ СБРОС СТЕРЖНЕЙ! ЦЕПНАЯ РЕАКЦИЯ ПРЕРВАНА.');
         document.getElementById('sys-status').innerText = "АВАРИЙНЫЙ ОСТАНОВ";
+        document.body.style.filter = "invert(1)"; setTimeout(() => document.body.style.filter = "none", 150);
+        setTimeout(() => document.body.style.filter = "invert(1)", 300); setTimeout(() => document.body.style.filter = "none", 450);
+        triggerTVS('az5');
+    };
+
+    // --- ФОНОВАЯ ФИЗИКА (TICK) ---
+    setInterval(() => {
+        if (state.pump < 50 && state.rod > 10) state.therm += 1.5;
+        if (state.therm > 105) { state.rad += 2; state.pres += 1; }
         
-        // Визуальный эффект
-        document.body.style.filter = "invert(1)";
-        setTimeout(() => document.body.style.filter = "none", 150);
-        setTimeout(() => document.body.style.filter = "invert(1)", 300);
-        setTimeout(() => document.body.style.filter = "none", 450);
+        if (state.rad >= 60 && !flags.radAlert) {
+            playSound('alarm'); addLog('АВТОМАТИКА', {}, true, 'ВНИМАНИЕ! КРИТИЧЕСКАЯ РАДИАЦИЯ > 60 µSv');
+            flags.radAlert = true;
+        } else if (state.rad < 60) flags.radAlert = false;
+
+        if (state.h2 >= 2.0 && !flags.h2Alert) {
+            playSound('alarm'); addLog('АВТОМАТИКА', {}, true, 'УГРОЗА ВЗРЫВА! ВОДОРОД > 2.0%');
+            flags.h2Alert = true;
+        } else if (state.h2 < 2.0) flags.h2Alert = false;
+
+        updateUI();
+    }, 2000);
+
+    // --- ЛОГИКА ОГРОМНОЙ КАРТЫ ТВС ---
+    const tvsMap = document.getElementById('tvs-map');
+    const statusText = document.getElementById('tvs-status-text');
+    const tvsCells = [];
+    
+    // Создаем круглую сетку 14x14
+    for(let y = 0; y < 14; y++) {
+        for(let x = 0; x < 14; x++) {
+            let cell = document.createElement('div');
+            cell.className = 'tvs-cell';
+            
+            // Формула круга: (x - center_x)^2 + (y - center_y)^2 <= radius^2
+            let dx = x - 6.5; let dy = y - 6.5;
+            if (dx*dx + dy*dy <= 7.5*7.5) {
+                tvsCells.push(cell);
+            } else {
+                cell.style.opacity = 0; // Скрываем углы
+            }
+            tvsMap.appendChild(cell);
+        }
+    }
+
+    // Интеллектуальное мигание карты в зависимости от температуры
+    setInterval(() => {
+        if(tvsCells.length === 0) return;
+        
+        // Выбираем несколько случайных каналов
+        for(let i=0; i<3; i++) {
+            const cell = tvsCells[Math.floor(Math.random() * tvsCells.length)];
+            
+            let color = 'var(--warn)'; // По умолчанию желтоватый (рабочий)
+            
+            // Логика цвета
+            if (state.therm > 95) { color = 'var(--danger)'; statusText.innerText = "СТАТУС: ПЕРЕГРЕВ АЗ!"; statusText.style.color = "var(--danger)"; }
+            else if (state.therm < 50) { color = 'var(--cool)'; statusText.innerText = "СТАТУС: РАСХОЛАЖИВАНИЕ"; statusText.style.color = "var(--cool)"; }
+            else { statusText.innerText = "СТАТУС: НОРМА"; statusText.style.color = "var(--safe)"; }
+
+            cell.style.backgroundColor = color;
+            setTimeout(() => { cell.style.backgroundColor = 'var(--safe)'; }, 2000);
+        }
+    }, 500);
+
+    // Ручное управление (вспышки целых зон)
+    window.triggerTVS = function(type) {
+        let flashColor = 'var(--safe)';
+        if (type === 'hot') flashColor = 'var(--danger)';
+        if (type === 'cool') flashColor = 'var(--cool)';
+        if (type === 'az5') flashColor = '#444'; // Темный при глушении
+
+        tvsCells.forEach(c => {
+            if(Math.random() > 0.3) {
+                c.style.backgroundColor = flashColor;
+                setTimeout(() => c.style.backgroundColor = 'var(--safe)', 1500);
+            }
+        });
     };
 
     // --- ТАЙМЕР ---
-    let timerInt;
-    let tSec = 0;
-    
+    let timerInt; let tSec = 0;
     window.startTimer = function() {
         clearInterval(timerInt);
         tSec = parseInt(document.getElementById('timer-input').value) || 60;
         updTimer();
         timerInt = setInterval(() => {
             tSec--; updTimer();
-            if(tSec <= 0) {
-                clearInterval(timerInt);
-                playSound('alarm');
-                addLog('ТАЙМЕР', {}, true);
-            }
+            if(tSec <= 0) { clearInterval(timerInt); playSound('alarm'); addLog('ТАЙМЕР', {}, true, 'ОПЕРАЦИЯ ЗАВЕРШЕНА ПО ВРЕМЕНИ'); }
         }, 1000);
     };
-    
     window.stopTimer = function() { clearInterval(timerInt); };
-    
-    function updTimer() {
-        const m = String(Math.floor(tSec/60)).padStart(2,'0');
-        const s = String(tSec%60).padStart(2,'0');
-        document.getElementById('timer-val').innerText = `${m}:${s}`;
-    }
+    function updTimer() { document.getElementById('timer-val').innerText = `${String(Math.floor(tSec/60)).padStart(2,'0')}:${String(tSec%60).padStart(2,'0')}`; }
 
-    // Инициализация звука по клику на документ (требование браузеров)
+    // --- СТАРТ ---
+    document.addEventListener('DOMContentLoaded', loadState);
     document.body.addEventListener('click', initAudio, { once: true });
 </script>
 </body>
