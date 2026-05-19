@@ -41,7 +41,7 @@
         }
 
         header h1 {
-            font-size: 24px;
+            font-size: 40px;
             text-transform: uppercase;
             letter-spacing: 2px;
         }
@@ -69,7 +69,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-			min-height: 110px;
+			min-height: 180px;
         }
 
         .ind-card.alarm {
@@ -78,18 +78,18 @@
 
         @keyframes blink-border {
             0% { border-color: #FFFFFF; box-shadow: none; }
-            100% { border-color: #FFFFFF; box-shadow: inset 0 0 8px #FFFFFF, 0 0 8px #FFFFFF; }
+            100% { border-color: #FF0000; box-shadow: inset 0 0 8px #FF0000, 0 0 8px #FF0000; }
         }
 
         .ind-label {
-            font-size: 11px;
+            font-size: 20px;
             text-transform: uppercase;
             margin-bottom: 8px;
             opacity: 0.8;
         }
 
         .ind-value {
-            font-size: 35px;
+            font-size: 50px;
             font-weight: bold;
             text-align: right;
         }
@@ -338,7 +338,7 @@
     <header>
         <div>
             <h1>Блочный щит управления АЭС С.Р.У.</h1>
-            <div style="font-size: 11px; margin-top: 5px;">МОДЕРНИЗИРОВАННАЯ ИНФОРМАЦИОННАЯ СИСТЕМА УПРАВЛЕНИЯ РЕАКТОРОМ</div>
+            <div style="font-size: 11px; margin-top: 5px;</div>
         </div>
         <div class="session-timer" id="sessionTimer">00:00:00</div>
     </header>
@@ -401,17 +401,17 @@
             vp: { label: "Влажность Пара", val: 12, unit: "%", max: 100, alarm: null, type: "limited" },
             cv: { label: "Конц. Водорода", val: 0.5, unit: "%", max: 100, alarm: 3.0, type: "limited" },
             ck: { label: "Конц. Кислорода", val: 0.2, unit: "%", max: 100, alarm: 1.2, type: "limited" },
-            rf: { label: "Радиац. Фон", val: 0.3, unit: " мкЗв/ч", max: null, alarm: 2.0, type: "unlimited" },
+            rf: { label: "Радиац. Фон", val: 0.3, unit: " мкЗв/ч", max: null, alarm: 34.0, type: "unlimited" },
             zk: { label: "Запас Криз. Теплооб.", val: 85, unit: "%", max: 100, alarm: null, type: "limited" },
             md: { label: "Мощн. Дозы 1К", val: 15, unit: "%", max: 100, alarm: null, type: "limited" },
             cl: { label: "Откр. Клапанов ТГ", val: 40, unit: "%", max: 100, alarm: null, type: "limited" }
         };
 
         const buttonsData = [
-            { id: "p_sterz", name: "Поднять Стерж.", desc: "Извлечение стержней-поглотителей." },
+            { id: "p_sterz", name: "↑Поднять Стерж.", desc: "Извлечение стержней-поглотителей." },
             { id: "o_sterz", name: "↓ Опустить Стерж.", desc: "Погружение стержней-поглотителей." },
             { id: "p_h2", name: "+ H2", desc: "Регулировка концентрации водорода в контуре." },
-            { id: "m_h2", name: "H2", desc: "Регулировка концентрации водорода в контуре." },
+            { id: "m_h2", name: "- H2", desc: "Регулировка концентрации водорода в контуре." },
             { id: "c_tm", name: "Контр. ТМ", desc: "Контроль тепловой мощности реактора." },
             { id: "g_nag", name: "Граф. Нагр.", desc: "Выравнивание графика электрической нагрузки." },
             { id: "d_1k", name: "Давл. 1К", desc: "Корректировка давления в первом контуре." },
@@ -591,30 +591,86 @@
         function playButtonSound() {
             if (!audioCtx) return;
             const t = audioCtx.currentTime;
-            
-            // Низкочастотное тело клика
-            const bodyOsc = audioCtx.createOscillator();
-            const bodyGain = audioCtx.createGain();
-            bodyOsc.type = 'triangle';
-            bodyOsc.frequency.setValueAtTime(120, t);
-            bodyGain.gain.setValueAtTime(0.3, t);
-            bodyGain.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
-            bodyOsc.connect(bodyGain);
-            bodyGain.connect(audioCtx.destination);
-            
-            // Высокочастотный механический щелчок пружины
-            const clickOsc = audioCtx.createOscillator();
-            const clickGain = audioCtx.createGain();
-            clickOsc.type = 'sine';
-            clickOsc.frequency.setValueAtTime(1800, t);
-            clickGain.gain.setValueAtTime(0.1, t);
-            clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.01);
-            clickOsc.connect(clickGain);
-            clickGain.connect(audioCtx.destination);
 
-            bodyOsc.start(t); bodyOsc.stop(t + 0.05);
-            clickOsc.start(t); clickOsc.stop(t + 0.02);
+            // =========================================================
+            // 1. НАЖАТИЕ (КОНТАКТ И ЭЛЕКТРИЧЕСКИЙ ИМПУЛЬС)
+            // =========================================================
+
+            // Микро-щелчок искры в момент замыкания контактов (10 мс белого шума)
+            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.01, audioCtx.sampleRate);
+            const noiseData = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < noiseBuffer.length; i++) {
+                noiseData[i] = Math.random() * 2 - 1;
+            }
+            const noiseNode = audioCtx.createBufferSource();
+            noiseNode.buffer = noiseBuffer;
+            const noiseGain = audioCtx.createGain();
+            noiseGain.gain.setValueAtTime(0.05, t);
+            noiseGain.gain.linearRampToValueAtTime(0.001, t + 0.006); // Мгновенное затухание
+            noiseNode.connect(noiseGain);
+            noiseGain.connect(audioCtx.destination);
+
+            // Основной аналоговый индуктивный гул цепи (Пила)
+            const mainOsc = audioCtx.createOscillator();
+            const mainGain = audioCtx.createGain();
+            mainOsc.type = 'sawtooth';
+            mainOsc.frequency.setValueAtTime(840, t); // Чуть опустили для благородного тона
+            mainGain.gain.setValueAtTime(0.04, t);
+            mainGain.gain.setValueAtTime(0.04, t + 0.035); // Держим звук 35 миллисекунд
+            mainGain.gain.linearRampToValueAtTime(0.0001, t + 0.037); // Жестко обрываем
+            mainOsc.connect(mainGain);
+            mainGain.connect(audioCtx.destination);
+
+            // Плотный суб-октавный «вес» кнопки (Синусоида)
+            const subOsc = audioCtx.createOscillator();
+            const subGain = audioCtx.createGain();
+            subOsc.type = 'sine';
+            subOsc.frequency.setValueAtTime(420, t); // Ровно на октаву ниже основного тона
+            subGain.gain.setValueAtTime(0.03, t);
+            subGain.gain.setValueAtTime(0.03, t + 0.032);
+            subGain.gain.linearRampToValueAtTime(0.0001, t + 0.034);
+            subOsc.connect(subGain);
+            subGain.connect(audioCtx.destination);
+
+
+            // =========================================================
+            // 2. ОТПУСКАНИЕ (МЕХАНИЧЕСКИЙ ОТСКОК ПРУЖИНЫ КНОПКИ)
+            // =========================================================
+            // Этот звук сдвинут на 45 миллисекунд вперед, имитируя быстрый ход пальца
+
+            const tUp = t + 0.045; 
+
+            // Глухой удар пластика/металла о корпус при возврате кнопки
+            const releaseOsc = audioCtx.createOscillator();
+            const releaseGain = audioCtx.createGain();
+            releaseOsc.type = 'triangle'; // Треугольник идеален для мягких механических ударов
+            releaseOsc.frequency.setValueAtTime(280, tUp); // Низкая частота удара пружины
+            releaseGain.gain.setValueAtTime(0.025, tUp);
+            releaseGain.gain.exponentialRampToValueAtTime(0.001, tUp + 0.02); // Короткий глуховатый спад
+            releaseOsc.connect(releaseGain);
+            releaseGain.connect(audioCtx.destination);
+
+            // Высокочастотный металлический «цык» механизма возврата
+            const releaseClick = audioCtx.createOscillator();
+            const releaseClickGain = audioCtx.createGain();
+            releaseClick.type = 'sine';
+            releaseClick.frequency.setValueAtTime(3100, tUp);
+            releaseClickGain.gain.setValueAtTime(0.015, tUp);
+            releaseClickGain.gain.exponentialRampToValueAtTime(0.0001, tUp + 0.01);
+            releaseClick.connect(releaseClickGain);
+            releaseClickGain.connect(audioCtx.destination);
+
+
+            // Запуск всех элементов в их строгой временной последовательности
+            noiseNode.start(t);
+            mainOsc.start(t); mainOsc.stop(t + 0.04);
+            subOsc.start(t); subOsc.stop(t + 0.036);
+            
+            releaseOsc.start(tUp); releaseOsc.stop(tUp + 0.025);
+            releaseClick.start(tUp); releaseClick.stop(tUp + 0.015);
         }
+            
+           
 
         // Инициализация Web Audio
         function initAudioSystem() {
@@ -632,7 +688,7 @@
             } catch(e){}
         }
 
-        // Сирена на 4 минуты
+        // Сирена на 5 минут
         function playFourMinuteAlarm() {
             if (!audioCtx) return;
             const t = audioCtx.currentTime;
@@ -790,13 +846,13 @@
                 return;
             }
 
-            logScala(`ОПЕРАТОР: Запуск алгоритма [${name}]`);
+            logScala(`ОПЕРАТОР: [${name}]`);
 
             switch(id) {
-                case "p_sterz": state.is += 5; state.tm += 8; state.zk -= 7; state.ck += 0.1; break;
-                case "o_sterz": state.is -= 5; state.tm -= 8; state.zk += 7; break;
-                case "p_h2": state.cv += 0.5; state.ck -= 0.1; break;
-                case "m_h2": state.cv -= 0.3; state.ck += 0.05; break;
+                case "p_sterz": state.is += 7; state.em += 5.1; state.tm += 8; state.zk -= 7; state.ck += 0.1; break;
+                case "o_sterz": state.is -= 6; state.em -= 4.3;state.tm -= 8; state.zk += 7; break;
+                case "p_h2": state.cv += 0.2; state.ck -= 0.2; break;
+                case "m_h2": state.cv -= 0.2; break;
                 case "c_tm": state.tm = Math.max(state.tm - 2, Math.min(state.tm + 2, 50)); break;
                 case "g_nag": state.em += 4; state.cl += 5; break;
                 case "d_1k": state.ukd += 3; break;
