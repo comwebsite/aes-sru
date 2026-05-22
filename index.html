@@ -358,7 +358,7 @@
         <!-- Левый фланг: Кнопки управления и огромная ЭВМ под ними -->
         <div class="left-column">
             <div class="control-panel">
-                <div class="panel-title">Исполнительные механизмы СУЗ и вспомогательных систем</div>
+                <div class="panel-title">Пульт управления АЭС</div>
                 <div class="buttons-grid" id="buttonsGrid"></div>
             </div>
 
@@ -387,7 +387,7 @@
     <!-- Футер -->
     <footer>
         <div>БЩУ АЭС © 2026</div>
-        <div id="techInfo">ИНТЕРФЕЙС: WIDE MODULAR | РЕАКТОР: РБМК-МОД | СУЗ: СИНХРОННО</div>
+        <div id="techInfo">БЛОЧНЫЙ ЩИТ УПРАВЛЕНИЯ АЭС | РЕАКТОР: РБМК</div>
     </footer>
 
     <script>
@@ -878,8 +878,8 @@
                 case "az5":
                     isSuzUp = false; state.is = 0; state.tm = 0; state.em = 0;
                     activeAlarms.az5 = true;
-                    document.getElementById('scalaStatus').innerText = "СТАТУС: СРАБАТЫВАНИЕ АЗ-5 (ПЕРЕГРУЗКА)";
-                    logScala("СКАЛА: СИГНАЛ АЗ-5! Аварийная посадка стержней. Запуск ревуна на 30 секунд.");
+                    document.getElementById('scalaStatus').innerText = "СТАТУС: СРАБАТЫВАНИЕ АЗ-5";
+                    logScala("СКАЛА: СИГНАЛ АЗ-5! Аварийная посадка стержней.");
                     
                     triggerRoarSystem();
                     
@@ -887,7 +887,7 @@
                     az5Timeout = setTimeout(() => {
                         activeAlarms.az5 = false;
                         clearRoarSystem();
-                        logScala("СКАЛА: Ревун АЗ-5 автоматически отключен по таймеру (30 сек).");
+                        logScala("СКАЛА: СИГНАл АЗ-5 СРАБОТАЛ УСПЕШНО. РЕАКТОР ЗАГЛУШЕН.");
                         if (!activeAlarms.chp) document.getElementById('scalaStatus').innerText = "СТАТУС: РЕАКТОР ЗАГЛУШЕН";
                     }, 30000);
                     break;
@@ -926,7 +926,7 @@
             let statusText = "СТАТУС: НОРМА";
             let colorHex = "var(--safe)";
 
-            if(state.tm > 80) { 
+            if(state.tm > 101) { 
                 statusText = "СТАТУС: ПЕРЕГРЕВ АКТИВНОЙ ЗОНЫ!"; 
                 colorHex = "var(--danger)"; 
             }
@@ -956,7 +956,7 @@
                     if(Math.random() < 0.2) {
                         
                         // 1. РЕЖИМ ПЕРЕГРЕВА (Оставляем как было в вашем оригинале)
-                        if (state.tm > 80) {
+                        if (state.tm > 101) {
                             cell.style.setProperty('background', (Math.random() < 0.85) ? colorHex : "var(--safe)", 'important');
                         }
                         
