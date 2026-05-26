@@ -1,0 +1,3241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>БЩУ ВВЭР-1000 | Блочный Щит Управления</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #000000;
+  --bg2: #050808;
+  --bg3: #080f10;
+  --border: #ffffff;
+  --border-dim: #444444;
+  --border-glow: #ffffff;
+  --text: #ffffff;
+  --text-dim: #888888;
+  --text-bright: #ffffff;
+  --green: #00ff88;
+  --green-dim: #004422;
+  --red: #ff2222;
+  --red-dim: #440000;
+  --yellow: #ffcc00;
+  --yellow-dim: #332200;
+  --blue: #00aaff;
+  --blue-dim: #001133;
+  --cyan: #00ffff;
+  --orange: #ff8800;
+  --panel-bg: #030909;
+  --button-bg: #0a0a0a;
+  --button-active: #1a1a1a;
+  --indicator-glow: 0 0 8px currentColor;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* SCANLINE EFFECT */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* HEADER */
+.header {
+  border-bottom: 2px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.header-title span {
+  color: var(--text-dim);
+  font-size: 12px;
+  display: block;
+  letter-spacing: 6px;
+  font-weight: 400;
+}
+
+.header-time {
+  font-family: 'Orbitron', monospace;
+  font-size: 20px;
+  color: var(--green);
+  text-shadow: 0 0 10px var(--green);
+}
+
+.header-status {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.status-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status-label {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+}
+
+/* ALARM BANNER */
+.alarm-banner {
+  display: none;
+  background: var(--red);
+  color: #000;
+  text-align: center;
+  padding: 8px;
+  font-family: 'Orbitron', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  animation: flash-alarm 0.5s infinite;
+  position: sticky;
+  top: 68px;
+  z-index: 99;
+}
+
+.alarm-banner.active { display: block; }
+
+@keyframes flash-alarm {
+  0%, 100% { background: var(--red); color: #000; }
+  50% { background: #000; color: var(--red); border: 2px solid var(--red); }
+}
+
+/* MAIN LAYOUT */
+.main-container {
+  display: grid;
+  grid-template-columns: 400px 1fr 400px;
+  gap: 0;
+  min-height: calc(100vh - 70px);
+}
+
+/* PANELS */
+.panel {
+  border-right: 1px solid var(--border-dim);
+  background: var(--panel-bg);
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.panel:last-child { border-right: none; border-left: 1px solid var(--border-dim); }
+
+.panel-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-dim);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+/* CENTER PANEL */
+.center-panel {
+  background: var(--bg2);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* SECTION */
+.section {
+  border: 1px solid var(--border-dim);
+  margin-bottom: 16px;
+  background: rgba(255,255,255,0.02);
+}
+
+.section-header {
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--border-dim);
+  padding: 6px 12px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-header::before {
+  content: '▶';
+  font-size: 8px;
+  color: var(--green);
+}
+
+.section-body {
+  padding: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* BUTTONS */
+.btn {
+  position: relative;
+  padding: 8px 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  border: 1px solid var(--border-dim);
+  background: var(--button-bg);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.1s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  user-select: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn:hover {
+  border-color: var(--border);
+  color: var(--text);
+  background: var(--button-active);
+}
+
+.btn:active {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+.btn.btn-emergency {
+  border-color: var(--red);
+  color: var(--red);
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 10px 18px;
+  background: rgba(255,34,34,0.08);
+  text-shadow: 0 0 8px var(--red);
+  box-shadow: inset 0 0 20px rgba(255,34,34,0.1);
+}
+
+.btn.btn-emergency:hover {
+  background: rgba(255,34,34,0.2);
+  box-shadow: 0 0 20px rgba(255,34,34,0.4), inset 0 0 20px rgba(255,34,34,0.15);
+}
+
+.btn.btn-on {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(0,255,136,0.08);
+  text-shadow: 0 0 6px var(--green);
+}
+
+.btn.btn-off {
+  border-color: #444;
+  color: #444;
+}
+
+.btn.btn-warn {
+  border-color: var(--yellow);
+  color: var(--yellow);
+  background: rgba(255,204,0,0.06);
+}
+
+.btn.btn-blue {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: rgba(0,170,255,0.06);
+}
+
+.btn.btn-active {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(0,255,136,0.12);
+  box-shadow: 0 0 10px rgba(0,255,136,0.3);
+}
+
+.btn-led {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #222;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.btn-led.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.btn-led.warn { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.btn-led.err { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.btn-led.blue { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+
+/* KEY SWITCH */
+.key-switch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--border-dim);
+  background: var(--button-bg);
+  cursor: pointer;
+  min-width: 80px;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.key-switch:hover { border-color: var(--border); }
+
+.key-switch-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.key-switch-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.key-switch-state {
+  font-size: 9px;
+  letter-spacing: 1px;
+  font-family: 'Orbitron', monospace;
+}
+
+.key-switch.on .key-switch-icon { filter: drop-shadow(0 0 4px var(--green)); }
+.key-switch.on .key-switch-state { color: var(--green); }
+.key-switch.off .key-switch-state { color: #444; }
+
+/* INDICATOR GAUGES */
+.indicator-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.indicator {
+  display: grid;
+  grid-template-columns: 1fr 80px 24px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-dim);
+  background: rgba(0,0,0,0.4);
+}
+
+.indicator-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.indicator-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: right;
+  transition: color 0.5s;
+}
+
+.indicator-unit {
+  font-size: 9px;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.indicator-bar {
+  height: 3px;
+  background: #111;
+  margin-top: 4px;
+  position: relative;
+  overflow: hidden;
+  grid-column: 1 / -1;
+}
+
+.indicator-bar-fill {
+  height: 100%;
+  transition: width 0.8s, background 0.5s;
+  background: var(--green);
+}
+
+.indicator.warn .indicator-value { color: var(--yellow); }
+.indicator.danger .indicator-value { color: var(--red); text-shadow: 0 0 8px var(--red); }
+.indicator.normal .indicator-value { color: var(--green); }
+
+/* CARTOGRAM */
+.cartogram-container {
+  border: 1px solid var(--border-dim);
+  background: #000;
+  padding: 12px;
+}
+
+.cartogram-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+#cartogram-canvas {
+  display: block;
+  margin: 0 auto;
+}
+
+.cartogram-legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-color {
+  width: 12px; height: 12px;
+  border: 1px solid #333;
+}
+
+/* PERIOD/POWER DISPLAY */
+.big-display {
+  border: 1px solid var(--border-dim);
+  padding: 16px;
+  text-align: center;
+  background: #000;
+  position: relative;
+  overflow: hidden;
+}
+
+.big-display::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  animation: scan-line 3s linear infinite;
+}
+
+@keyframes scan-line {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+
+.big-display-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.big-display-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 42px;
+  font-weight: 900;
+  transition: all 0.5s;
+  line-height: 1;
+}
+
+.big-display-unit {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+
+.big-display-trend {
+  font-size: 11px;
+  margin-top: 6px;
+  letter-spacing: 2px;
+}
+
+/* SRPП LOG */
+.srpp-log {
+  border: 1px solid var(--border-dim);
+  background: #000;
+  height: 1520px;
+  overflow-y: auto;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+}
+
+.srpp-header {
+  /* ИСПРАВЛЕНО: делаем фон полностью черным (под цвет подложки .srpp-log) 
+     и добавляем легкую белoffset-плашку через linear-gradient, чтобы сохранить ваш дизайн */
+  background: linear-gradient(rgba(255,255,255,0.05), rgba(255,255,255,0.05)), #000;
+  
+  border-bottom: 1px solid var(--border-dim);
+  padding: 6px 12px;
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  position: sticky;
+  top: 0;
+  
+  /* ДОБАВЛЕНО: слой поверх скроллируемого контента */
+  z-index: 1; 
+}
+
+.srpp-entry {
+  padding: 3px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.srpp-time { color: var(--text-dim); flex-shrink: 0; font-size: 10px; }
+.srpp-msg { flex: 1; }
+.srpp-msg.normal { color: var(--text-dim); }
+.srpp-msg.warn { color: var(--yellow); }
+.srpp-msg.critical { color: var(--red); font-weight: bold; }
+.srpp-msg.action { color: var(--cyan); }
+.srpp-msg.auto { color: var(--blue); }
+
+/* STERZHEN POSITION */
+.rod-position {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--border-dim);
+  min-width: 60px;
+  background: #000;
+}
+
+.rod-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.rod-track {
+  width: 12px;
+  height: 60px;
+  background: #111;
+  border: 1px solid #333;
+  position: relative;
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.rod-fill {
+  background: var(--green);
+  width: 100%;
+  transition: height 1s ease;
+  box-shadow: 0 0 4px var(--green);
+}
+
+.rod-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  color: var(--green);
+}
+
+/* PUMP INDICATORS */
+.pump-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pump-card {
+  border: 1px solid var(--border-dim);
+  padding: 10px;
+  background: #000;
+}
+
+.pump-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.pump-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+
+.pump-status-badge {
+  font-size: 9px;
+  padding: 2px 6px;
+  border: 1px solid;
+  letter-spacing: 1px;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.pump-status-badge.running {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(0,255,136,0.08);
+  animation: badge-pulse 2s infinite;
+}
+
+.pump-status-badge.stopped {
+  border-color: #444;
+  color: #444;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.pump-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.pump-metric-label { font-size: 9px; color: var(--text-dim); }
+.pump-metric-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  transition: color 0.3s;
+}
+
+.pump-btns {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.pump-btns .btn { flex: 1; justify-content: center; font-size: 10px; padding: 5px 8px; }
+
+/* TABS */
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border-dim);
+  margin-bottom: 16px;
+  gap: 0;
+}
+
+.tab {
+  padding: 8px 16px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  outline: none;
+}
+
+.tab:hover { color: var(--text); }
+.tab.active {
+  color: var(--text);
+  border-bottom-color: var(--green);
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #333; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* GROUP SELECTOR */
+.group-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.group-btn {
+  padding: 4px 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  border: 1px solid var(--border-dim);
+  background: #000;
+  color: var(--text-dim);
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.15s;
+  outline: none;
+}
+
+.group-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+.group-btn.selected {
+  border-color: var(--cyan);
+  background: rgba(0,255,255,0.1);
+  color: var(--cyan);
+}
+
+/* SLIDER */
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-dim);
+  background: #000;
+}
+
+.slider-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  min-width: 120px;
+  text-transform: uppercase;
+}
+
+.slider-control {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+input[type=range] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 3px;
+  background: #222;
+  border: none;
+  outline: none;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--green);
+  border: 1px solid var(--text);
+  cursor: pointer;
+}
+
+.slider-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  color: var(--green);
+  min-width: 50px;
+  text-align: right;
+}
+
+/* FOOTER */
+footer {
+  border-top: 2px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg2);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+}
+
+footer a { color: var(--text-dim); text-decoration: none; }
+
+/* GRID HELPERS */
+.flex-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.flex-col { display: flex; flex-direction: column; gap: 8px; }
+.w100 { width: 100%; }
+
+/* BORIC ACID */
+.boric-display {
+  padding: 8px 12px;
+  border: 1px solid var(--border-dim);
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.boric-label { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; }
+.boric-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--cyan);
+  text-shadow: 0 0 8px var(--cyan);
+}
+.boric-unit { font-size: 10px; color: var(--text-dim); }
+
+/* MODAL */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+  border: 2px solid var(--red);
+  background: #000;
+  padding: 32px;
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 0 60px rgba(255,34,34,0.4);
+  animation: modal-in 0.2s ease;
+}
+
+@keyframes modal-in {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--red);
+  letter-spacing: 4px;
+  margin-bottom: 16px;
+  text-shadow: 0 0 20px var(--red);
+}
+
+.modal-body {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-dim);
+  margin-bottom: 24px;
+}
+
+.modal-btns { display: flex; gap: 12px; justify-content: center; }
+.modal-btn-confirm { padding: 10px 28px; }
+.modal-btn-cancel { padding: 10px 28px; }
+
+/* TOOLTIP */
+.tooltip-wrap { position: relative; }
+
+.tooltip-wrap:hover .tooltip-box { display: block; }
+
+.tooltip-box {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111;
+  border: 1px solid var(--border-dim);
+  padding: 8px 12px;
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  width: 220px;
+  z-index: 500;
+  pointer-events: none;
+}
+
+/* АКНП Диапазон */
+.aknp-range-display {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  color: var(--blue);
+  letter-spacing: 2px;
+  padding: 4px 8px;
+  border: 1px solid var(--blue-dim);
+  background: rgba(0,100,200,0.05);
+}
+
+/* Radiation indicator */
+.radiation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--yellow);
+  background: rgba(255,204,0,0.06);
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  color: var(--yellow);
+}
+
+.radiation-symbol {
+  font-size: 16px;
+  animation: rotate-rad 4s linear infinite;
+  display: inline-block;
+}
+
+@keyframes rotate-rad {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* highlight flash */
+@keyframes flash-green {
+  0% { box-shadow: 0 0 0px rgba(0,255,136,0); }
+  50% { box-shadow: 0 0 20px rgba(0,255,136,0.6); }
+  100% { box-shadow: 0 0 0px rgba(0,255,136,0); }
+}
+
+@keyframes flash-red {
+  0% { box-shadow: 0 0 0px rgba(255,34,34,0); }
+  50% { box-shadow: 0 0 20px rgba(255,34,34,0.8); }
+  100% { box-shadow: 0 0 0px rgba(255,34,34,0); }
+}
+
+.flash-g { animation: flash-green 0.5s ease; }
+.flash-r { animation: flash-red 0.5s ease; }
+
+/* KD level */
+.kd-display {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  padding: 8px;
+  border: 1px solid var(--border-dim);
+  background: #000;
+}
+
+.kd-tank {
+  width: 30px;
+  height: 150px;
+  border: 1px solid var(--border-dim);
+  background: #0a0a0a;
+  display: flex;
+  flex-direction: column-reverse;
+  position: relative;
+  overflow: hidden;
+}
+
+.kd-level {
+  background: var(--blue);
+  width: 100%;
+  transition: height 1s;
+  box-shadow: 0 0 8px var(--blue);
+}
+
+.kd-label {
+  font-size: 14px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.kd-percent {
+  font-family: 'Orbitron', monospace;
+  font-size: 14px;
+  color: var(--blue);
+  margin-top: 4px;
+}
+
+/* TURB POWER */
+.turb-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+</style>
+</head>
+<body>
+
+<!-- ALARM BANNER -->
+<div class="alarm-banner" id="alarm-banner">⚠ АВАРИЯ — АВАРИЙНАЯ ЗАЩИТА АКТИВИРОВАНА — СРPP ФИКСИРУЕТ ⚠</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-title">
+    БЩУ ВВЭР-1000
+    <span>БЛОЧНЫЙ ЩИТ УПРАВЛЕНИЯ · ЭНЕРГОБЛОК №1</span>
+  </div>
+  <div class="header-status">
+    <div class="status-dot" id="reactor-dot"></div>
+    <div class="status-label" id="reactor-status-text">НОРМАЛЬНАЯ РАБОТА</div>
+  </div>
+  <div class="radiation-badge">
+    <span class="radiation-symbol">☢</span>
+    <span id="rad-display">0.12</span>
+    <span style="font-size:9px;color:var(--text-dim)">мкЗв/ч</span>
+  </div>
+  <div class="header-time" id="clock">00:00:00</div>
+</header>
+
+<!-- MAIN -->
+<div class="main-container">
+
+  <!-- LEFT PANEL -->
+  <aside class="panel" id="left-panel">
+    <div class="panel-title">СУЗ и Реактивность</div>
+
+    <!-- AZ-5 БАЗ УПЗ -->
+    <div class="section">
+      <div class="section-header">Аварийная защита</div>
+      <div class="section-body flex-col">
+        <div class="tooltip-wrap w100">
+          <button class="btn btn-emergency w100" id="btn-az5" onclick="triggerAZ5()">
+            <div class="btn-led" id="led-az5"></div>
+            АЗ-5 — АВАРИЙНЫЙ СБРОС
+          </button>
+          <div class="tooltip-box">Мгновенный сброс всех стержней СУЗ. Нейтронная мощность падает до остаточного тепловыделения. Период реактора → глубокий минус. Позиция стержней → 0%.</div>
+        </div>
+        <div class="tooltip-wrap w100">
+          <button class="btn btn-emergency w100" id="btn-baz" onclick="triggerBAZ()">
+            <div class="btn-led" id="led-baz"></div>
+            БАЗ — БЫСТРАЯ АВАРИЙНАЯ
+          </button>
+          <div class="tooltip-box">Принудительный высокоскоростной ввод поглощающих стержней с ускорителями. Аналогично АЗ-5, но с вертикальным графиком падения мощности.</div>
+        </div>
+        <div class="tooltip-wrap w100">
+          <button class="btn btn-warn w100" id="btn-upz" onclick="triggerUPZ()">
+            <div class="btn-led warn" id="led-upz"></div>
+            УПЗ — УСКОРЕННАЯ ПРЕДУПРЕДИТ.
+          </button>
+          <div class="tooltip-box">Погружение рабочих групп стержней. Снижение нейтронной и теплотехнической мощности до ~50%.</div>
+        </div>
+        <div class="tooltip-wrap w100">
+          <button class="btn btn-warn w100" id="btn-tr" onclick="triggerTR()">
+            <div class="btn-led warn"></div>
+            ТР — ТЕХНОЛОГИЧЕСКИЙ РАСЦЕП
+          </button>
+          <div class="tooltip-box">Обесточивание приводов стержней СУЗ. Все стержни падают. Позиция органов регулирования → 0%.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARM -->
+    <div class="section">
+      <div class="section-header">Автоматический регулятор мощности</div>
+      <div class="section-body flex-col">
+        <div class="flex-row">
+          <div class="tooltip-wrap">
+            <div class="key-switch off" id="key-arm" onclick="toggleKey('arm')">
+              <div class="key-switch-icon">🔑</div>
+              <div class="key-switch-label">АРМ-ВКЛ</div>
+              <div class="key-switch-state" id="arm-state">ВЫКЛ</div>
+            </div>
+            <div class="tooltip-box">Включение автоматического регулятора мощности. Стержни начинают двигаться сами, отрабатывая уставку.</div>
+          </div>
+          <div class="tooltip-wrap">
+            <div class="key-switch off" id="key-arm-perekl" onclick="toggleKey('arm-perekl')">
+              <div class="key-switch-icon">⇄</div>
+              <div class="key-switch-label">АРМ-ПЕРЕКЛ</div>
+              <div class="key-switch-state" id="arm-perekl-state">ОСН</div>
+            </div>
+            <div class="tooltip-box">Переключение каналов АКНП — Основной / Резервный. Меняет источник данных для логики АРМ.</div>
+          </div>
+          <div class="tooltip-wrap">
+            <div class="key-switch off" id="key-dir-suz" onclick="toggleKey('dir-suz')">
+              <div class="key-switch-icon">🎛</div>
+              <div class="key-switch-label">ДИР-СУЗ</div>
+              <div class="key-switch-state" id="dir-suz-state">ВЫКЛ</div>
+            </div>
+            <div class="tooltip-box">Перевод СУЗ в режим дистанционного ручного управления. Автоматика отключается.</div>
+          </div>
+        </div>
+        <div class="aknp-range-display" id="aknp-range">АКНП: ДИАПАЗОН МОЩНОСТИ</div>
+        <div class="flex-row">
+          <button class="btn" onclick="changeAKNP('source')">АКНП: ИСТОЧНИК</button>
+          <button class="btn" onclick="changeAKNP('mid')">ПРОМЕЖУТОЧНЫЙ</button>
+          <button class="btn btn-active" id="aknp-power" onclick="changeAKNP('power')">МОЩНОСТЬ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- РУЧНОЕ УПРАВЛЕНИЕ СУЗ -->
+    <div class="section">
+      <div class="section-header">Ручное управление стержнями СУЗ</div>
+      <div class="section-body flex-col">
+        <div>
+          <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px;letter-spacing:1px;">ВЫБОР ГРУППЫ:</div>
+          <div class="group-selector" id="group-selector">
+            <button class="group-btn selected" onclick="selectGroup(this,'РГ-1')">РГ-1</button>
+            <button class="group-btn" onclick="selectGroup(this,'РГ-2')">РГ-2</button>
+            <button class="group-btn" onclick="selectGroup(this,'РГ-3')">РГ-3</button>
+            <button class="group-btn" onclick="selectGroup(this,'КГ-1')">КГ-1</button>
+            <button class="group-btn" onclick="selectGroup(this,'КГ-2')">КГ-2</button>
+            <button class="group-btn" onclick="selectGroup(this,'АГ')">АГ</button>
+          </div>
+        </div>
+        <div class="flex-row">
+          <button class="btn btn-blue w100" id="btn-suz-up" onclick="moveSUZ(1)" style="flex:1">
+            <div class="btn-led blue"></div>
+            ▲ СУЗ-ВВЕРХ
+          </button>
+          <button class="btn btn-warn w100" id="btn-suz-dn" onclick="moveSUZ(-1)" style="flex:1">
+            <div class="btn-led warn"></div>
+            ▼ СУЗ-ВНИЗ
+          </button>
+        </div>
+        <div class="tooltip-wrap w100">
+          <button class="btn w100" onclick="stepMoveSUZ()">
+            <div class="btn-led"></div>
+            ⊞ ШАГОВЫЙ ХОД СУЗ
+          </button>
+          <div class="tooltip-box">Перемещение стержней фиксированными шагами для прецизионного изменения реактивности.</div>
+        </div>
+
+        <!-- СТЕРЖНИ ПОЗИЦИЯ -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding-top:8px;">
+          <div class="rod-position">
+            <div class="rod-label">РГ-1</div>
+            <div class="rod-track"><div class="rod-fill" id="rod-rg1" style="height:75%"></div></div>
+            <div class="rod-value" id="rod-rg1-val">75</div>
+          </div>
+          <div class="rod-position">
+            <div class="rod-label">РГ-2</div>
+            <div class="rod-track"><div class="rod-fill" id="rod-rg2" style="height:72%"></div></div>
+            <div class="rod-value" id="rod-rg2-val">72</div>
+          </div>
+          <div class="rod-position">
+            <div class="rod-label">РГ-3</div>
+            <div class="rod-track"><div class="rod-fill" id="rod-rg3" style="height:70%"></div></div>
+            <div class="rod-value" id="rod-rg3-val">70</div>
+          </div>
+          <div class="rod-position">
+            <div class="rod-label">КГ-1</div>
+            <div class="rod-track"><div class="rod-fill" id="rod-kg1" style="height:85%"></div></div>
+            <div class="rod-value" id="rod-kg1-val">85</div>
+          </div>
+          <div class="rod-position">
+            <div class="rod-label">КГ-2</div>
+            <div class="rod-track"><div class="rod-fill" id="rod-kg2" style="height:80%"></div></div>
+            <div class="rod-value" id="rod-kg2-val">80</div>
+          </div>
+          <div class="rod-position">
+            <div class="rod-label">АГ</div>
+            <div class="rod-track"><div class="rod-fill" id="rod-ag" style="height:90%"></div></div>
+            <div class="rod-value" id="rod-ag-val">90</div>
+          </div>
+        </div>
+
+        <!-- Уставка АРМ по Т-ср -->
+        <div class="slider-row">
+          <div class="slider-label">АРМ Уставка Т-ср</div>
+          <div class="slider-control">
+            <input type="range" min="290" max="325" value="308" id="arm-tsr" oninput="setARMTsr(this.value)">
+            <div class="slider-value" id="arm-tsr-val">308°C</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- БОРНОЕ РЕГУЛИРОВАНИЕ -->
+    <div class="section">
+      <div class="section-header">Борное регулирование</div>
+      <div class="section-body flex-col">
+        <div class="boric-display">
+          <div>
+            <div class="boric-label">H₃BO₃</div>
+            <div class="boric-value" id="boric-val">8.20</div>
+            <div class="boric-unit">г/кг</div>
+          </div>
+          <div style="text-align:right">
+            <div class="boric-label">pH</div>
+            <div class="boric-value" id="ph-val">7.1</div>
+            <div class="boric-unit">S/см: <span id="conduct-val">2.4</span></div>
+          </div>
+        </div>
+        <div class="flex-row">
+          <div class="tooltip-wrap" style="flex:1">
+            <button class="btn w100" id="btn-bor-nag" onclick="toggleBor('nag')">
+              <div class="btn-led" id="led-bor-nag"></div>
+              НАГНЕТАНИЕ БОРА
+            </button>
+            <div class="tooltip-box">Насосы подачи борной кислоты в первый контур. Плавное снижение нейтронной мощности.</div>
+          </div>
+          <div class="tooltip-wrap" style="flex:1">
+            <button class="btn w100" id="btn-bor-clean" onclick="toggleBor('clean')">
+              <div class="btn-led" id="led-bor-clean"></div>
+              ЧИСТАЯ ВОДА
+            </button>
+            <div class="tooltip-box">Разбавление борного раствора. Плавный подъём нейтронной мощности.</div>
+          </div>
+        </div>
+        <!-- ОБК насосы -->
+        <div class="flex-row">
+          <button class="btn btn-warn" style="flex:1" onclick="startOBK(1)">
+            <div class="btn-led warn"></div>
+            ОБК №1 ПУСК
+          </button>
+          <button class="btn btn-warn" style="flex:1" onclick="startOBK(2)">
+            <div class="btn-led warn"></div>
+            ОБК №2 ПУСК
+          </button>
+        </div>
+        <!-- Подпитка-продувка -->
+        <div class="slider-row">
+          <div class="slider-label">Регулятор подпитки 1К</div>
+          <div class="slider-control">
+            <input type="range" min="0" max="100" value="45" id="podpitka" oninput="setPodpitka(this.value)">
+            <div class="slider-value" id="podpitka-val">45%</div>
+          </div>
+        </div>
+        <div class="flex-row">
+          <div class="tooltip-wrap" style="flex:1">
+            <button class="btn w100" id="btn-produvka" onclick="toggleProduvka()">
+              <div class="btn-led" id="led-produvka"></div>
+              ПРОДУВКА 1К
+            </button>
+            <div class="tooltip-box">Сброс теплоносителя из контура на очистку. Снижает уровень в КД и давление.</div>
+          </div>
+          <div class="tooltip-wrap" style="flex:1">
+            <button class="btn w100" id="btn-hydrazin" onclick="toggleHydrazin()">
+              <div class="btn-led" id="led-hydrazin"></div>
+              ГИДРАЗИН
+            </button>
+            <div class="tooltip-box">Дозирование гидрозина и аммиака. Корректирует pH и электропроводность, защищает от коррозии.</div>
+          </div>
+        </div>
+        <div class="flex-row">
+          <button class="btn" style="flex:1" id="btn-svo" onclick="toggleSVO()">
+            <div class="btn-led" id="led-svo"></div>
+            СВО-1 ВКЛ
+          </button>
+          <button class="btn" style="flex:1" id="btn-ion" onclick="toggleIon()">
+            <div class="btn-led" id="led-ion"></div>
+            ИОНООБМ. ФИЛЬТР
+          </button>
+        </div>
+        <!-- Газоудаление -->
+        <div class="flex-row">
+          <button class="btn" style="flex:1" onclick="gasRemoval('reactor')">
+            <div class="btn-led"></div>
+            ГАЗОУДАЛ. ГОЛОВА
+          </button>
+          <button class="btn" style="flex:1" onclick="gasRemoval('kd')">
+            <div class="btn-led"></div>
+            ГАЗОУДАЛ. КД
+          </button>
+        </div>
+        <div class="flex-row">
+          <button class="btn btn-warn" style="flex:1" id="btn-rekombin" onclick="toggleRekombin()">
+            <div class="btn-led warn" id="led-rekombin"></div>
+            РЕКОМБИНАТОРЫ H₂
+          </button>
+          <button class="btn btn-warn" style="flex:1" id="btn-drain" onclick="triggerDrain()">
+            <div class="btn-led warn"></div>
+            ДРЕНАЖ → ЖРО
+          </button>
+        </div>
+        <!-- Аварийное газоудаление -->
+        <div style="font-size:10px;color:var(--text-dim);padding:4px;letter-spacing:1px;">
+          H₂: <span id="h2-val" style="color:var(--green)">0.3</span>% &nbsp;|&nbsp; O₂: <span id="o2-val" style="color:var(--green)">0.1</span>%
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER PANEL -->
+  <main class="center-panel">
+    <!-- TABS -->
+    <div class="tab-bar">
+      <button class="tab active" onclick="showTab('overview')" id="tab-overview">Обзор</button>
+      <button class="tab" onclick="showTab('cartogram')" id="tab-cartogram">Картограмма</button>
+      <button class="tab" onclick="showTab('safety')" id="tab-safety">Безопасность</button>
+      <button class="tab" onclick="showTab('srpp')" id="tab-srpp">СРПП</button>
+    </div>
+
+    <!-- TAB: OVERVIEW -->
+    <div id="tab-content-overview">
+      <!-- BIG DISPLAYS -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div class="big-display">
+          <div class="big-display-label">НЕЙТРОННАЯ МОЩНОСТЬ</div>
+          <div class="big-display-value" id="neutron-power" style="color:var(--green)">75.2</div>
+          <div class="big-display-unit">% Nном</div>
+          <div class="big-display-trend" id="neutron-trend" style="color:var(--text-dim)">СТАБИЛЬНО</div>
+        </div>
+        <div class="big-display">
+          <div class="big-display-label">ПЕРИОД РЕАКТОРА</div>
+          <div class="big-display-value" id="reactor-period" style="color:var(--text-dim)">∞</div>
+          <div class="big-display-unit">секунд</div>
+          <div class="big-display-trend" id="period-trend" style="color:var(--text-dim)">НЕЙТРАЛЬ</div>
+        </div>
+        <div class="big-display">
+          <div class="big-display-label">ЭЛЕКТРИЧ. МОЩНОСТЬ</div>
+          <div class="big-display-value" id="elec-power" style="color:var(--yellow)">728</div>
+          <div class="big-display-unit">МВт(э)</div>
+          <div class="big-display-trend" id="elec-trend" style="color:var(--text-dim)">В СЕТИ</div>
+        </div>
+      </div>
+
+      <!-- INDICATORS -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div class="indicator-group">
+          <div style="font-size:10px;letter-spacing:2px;color:var(--text-dim);margin-bottom:4px;padding:4px;border-bottom:1px solid #222;">ПЕРВЫЙ КОНТУР</div>
+
+          <div class="indicator normal" id="ind-pressure">
+            <div class="indicator-label">Давление 1К</div>
+            <div class="indicator-value" id="val-pressure">15.72</div>
+            <div class="indicator-unit">МПа</div>
+            <div class="indicator-bar"><div class="indicator-bar-fill" id="bar-pressure" style="width:79%"></div></div>
+          </div>
+
+          <div class="indicator normal" id="ind-tin">
+            <div class="indicator-label">Темп. вход 1К</div>
+            <div class="indicator-value" id="val-tin">291.4</div>
+            <div class="indicator-unit">°C</div>
+            <div class="indicator-bar"><div class="indicator-bar-fill" id="bar-tin" style="width:62%"></div></div>
+          </div>
+
+          <div class="indicator normal" id="ind-tout">
+            <div class="indicator-label">Темп. выход 1К</div>
+            <div class="indicator-value" id="val-tout">322.1</div>
+            <div class="indicator-unit">°C</div>
+            <div class="indicator-bar"><div class="indicator-bar-fill" id="bar-tout" style="width:71%"></div></div>
+          </div>
+
+          <div class="indicator normal" id="ind-tterm">
+            <div class="indicator-label">Теплотехн. мощн.</div>
+            <div class="indicator-value" id="val-tterm">2248</div>
+            <div class="indicator-unit">МВт(т)</div>
+            <div class="indicator-bar"><div class="indicator-bar-fill" id="bar-tterm" style="width:75%"></div></div>
+          </div>
+
+          <!-- КД -->
+          <div style="display:flex;gap:12px;align-items:center;padding:8px;border:1px solid var(--border-dim);background:#000;">
+            <div class="kd-tank">
+              <div class="kd-level" id="kd-level" style="height:65%"></div>
+            </div>
+            <div>
+              <div class="kd-label">КД — УРОВЕНЬ</div>
+              <div class="kd-percent" id="kd-percent">65%</div>
+              <div style="font-size:9px;color:var(--text-dim);margin-top:4px;">норма: 50-70%</div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+              <div style="font-size:9px;color:var(--text-dim)">НАГРЕВ КД</div>
+              <div class="flex-row">
+                <button class="btn" style="font-size:9px;padding:4px 8px;flex:1" onclick="toggleKD('gr1')">ТЭН-1 АВТ</button>
+                <button class="btn" style="font-size:9px;padding:4px 8px;flex:1" onclick="toggleKD('gr2')">ТЭН-2 РЕЗ</button>
+              </div>
+              <div class="flex-row">
+                <button class="btn" style="font-size:9px;padding:4px 8px;flex:1" onclick="toggleKD('inject')">ВПРЫСК КД</button>
+                <button class="btn btn-warn" style="font-size:9px;padding:4px 8px;flex:1" onclick="triggerIPK()">ИПК КД</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="indicator-group">
+          <div style="font-size:10px;letter-spacing:2px;color:var(--text-dim);margin-bottom:4px;padding:4px;border-bottom:1px solid #222;">ВТОРОЙ КОНТУР</div>
+
+          <div class="indicator normal" id="ind-pg">
+            <div class="indicator-label">Уровень ПГ (ср.)</div>
+            <div class="indicator-value" id="val-pg">52.3</div>
+            <div class="indicator-unit">%</div>
+            <div class="indicator-bar"><div class="indicator-bar-fill" id="bar-pg" style="width:52%;background:var(--cyan)"></div></div>
+          </div>
+
+          <div class="indicator normal" id="ind-steam">
+            <div class="indicator-label">Давл. пара 2К</div>
+            <div class="indicator-value" id="val-steam">6.28</div>
+            <div class="indicator-unit">МПа</div>
+            <div class="indicator-bar"><div class="indicator-bar-fill" id="bar-steam" style="width:63%;background:var(--cyan)"></div></div>
+          </div>
+
+          <div class="indicator normal" id="ind-turb">
+            <div class="indicator-label">Мощн. турбины</div>
+            <div class="indicator-value" id="val-turb">728</div>
+            <div class="indicator-unit">МВт</div>
+            <div class="indicator-bar"><div class="indicator-bar-fill" id="bar-turb" style="width:73%;background:var(--yellow)"></div></div>
+          </div>
+
+          <!-- ПГRKCW per loop -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;border:1px solid var(--border-dim);padding:8px;background:#000;">
+            <div style="font-size:9px;color:var(--text-dim);grid-column:1/-1;margin-bottom:4px;letter-spacing:1px;">УРОВЕНЬ ВОДЫ В ПГ (ПЕТЛИ)</div>
+            <div id="pg1-lvl" style="font-size:11px;color:var(--cyan);">ПГ-1: <span id="pg1v">52</span>%
+              <input type="range" min="0" max="100" value="52" style="width:100%;height:2px;margin-top:2px" oninput="setPGLevel(1,this.value)">
+            </div>
+            <div id="pg2-lvl" style="font-size:11px;color:var(--cyan);">ПГ-2: <span id="pg2v">53</span>%
+              <input type="range" min="0" max="100" value="53" style="width:100%;height:2px;margin-top:2px" oninput="setPGLevel(2,this.value)">
+            </div>
+            <div id="pg3-lvl" style="font-size:11px;color:var(--cyan);">ПГ-3: <span id="pg3v">51</span>%
+              <input type="range" min="0" max="100" value="51" style="width:100%;height:2px;margin-top:2px" oninput="setPGLevel(3,this.value)">
+            </div>
+            <div id="pg4-lvl" style="font-size:11px;color:var(--cyan);">ПГ-4: <span id="pg4v">52</span>%
+              <input type="range" min="0" max="100" value="52" style="width:100%;height:2px;margin-top:2px" oninput="setPGLevel(4,this.value)">
+            </div>
+          </div>
+
+          <!-- RADIATION -->
+          <div class="indicator" id="ind-rad" style="border-color:var(--yellow)">
+            <div class="indicator-label">Радиационный фон</div>
+            <div class="indicator-value" id="val-rad" style="color:var(--yellow)">0.12</div>
+            <div class="indicator-unit">мкЗв/ч</div>
+            <div class="indicator-bar"><div class="indicator-bar-fill" id="bar-rad" style="width:2%;background:var(--yellow)"></div></div>
+          </div>
+
+          <!-- H2/O2 -->
+          <div class="indicator" id="ind-h2">
+            <div class="indicator-label">H₂ под ГО</div>
+            <div class="indicator-value" id="val-h2" style="color:var(--green)">0.30</div>
+            <div class="indicator-unit">%</div>
+            <div class="indicator-bar"><div class="indicator-bar-fill" id="bar-h2" style="width:7%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TURBINE CONTROLS -->
+      <div class="section">
+        <div class="section-header">Турбогенератор</div>
+        <div class="section-body">
+          <div class="turb-controls" style="width:100%">
+            <div class="flex-row">
+              <div class="tooltip-wrap">
+                <button class="btn btn-emergency" onclick="triggerStopValve()">
+                  <div class="btn-led err"></div>
+                  СТОП-КЛАПАН ТУРБИНЫ
+                </button>
+                <div class="tooltip-box">Мгновенное перекрытие пара. Электрическая мощность → 0. Резкий рост давления во 2-м контуре.</div>
+              </div>
+              <div class="tooltip-wrap">
+                <div class="key-switch off" id="key-sync" onclick="toggleSync()">
+                  <div class="key-switch-icon">⚡</div>
+                  <div class="key-switch-label">СИНХРОНИЗ.</div>
+                  <div class="key-switch-state" id="sync-state">ВЫКЛ</div>
+                </div>
+                <div class="tooltip-box">Включение генератора в сеть. Появление и рост активной электрической мощности.</div>
+              </div>
+              <div class="tooltip-wrap">
+                <div class="key-switch off" id="key-brouk" onclick="toggleKey('brouk')">
+                  <div class="key-switch-icon">🌀</div>
+                  <div class="key-switch-label">БРОУ-К</div>
+                  <div class="key-switch-state" id="brouk-state">ЗАКР</div>
+                </div>
+                <div class="tooltip-box">Сброс пара в конденсатор. Снижает давление во 2-м контуре, охлаждает 1-й контур.</div>
+              </div>
+              <div class="tooltip-wrap">
+                <div class="key-switch off" id="key-broua" onclick="toggleKey('broua')">
+                  <div class="key-switch-icon">💨</div>
+                  <div class="key-switch-label">БРОУ-А</div>
+                  <div class="key-switch-state" id="broua-state">ЗАКР</div>
+                </div>
+                <div class="tooltip-box">Сброс пара в атмосферу. Используется при потере конденсаторов. ВЫБРОС ЧИСТОГО ПАРА.</div>
+              </div>
+            </div>
+            <div class="slider-row">
+              <div class="slider-label">ЭЧСР Мощность турбины</div>
+              <div class="slider-control">
+                <button class="btn" onclick="changeTurbPower(-10)" style="padding:4px 10px;font-size:14px;">−</button>
+                <input type="range" min="0" max="1000" value="728" id="turb-power-slider" oninput="setTurbPower(this.value)">
+                <button class="btn" onclick="changeTurbPower(10)" style="padding:4px 10px;font-size:14px;">+</button>
+                <div class="slider-value" id="turb-power-val">728 МВт</div>
+              </div>
+            </div>
+            <div class="flex-row">
+              <div class="tooltip-wrap">
+                <div class="key-switch off" id="key-pen1" onclick="toggleKey('pen1')">
+                  <div class="key-switch-icon">💧</div>
+                  <div class="key-switch-label">ПЭН-1</div>
+                  <div class="key-switch-state" id="pen1-state">ВЫКЛ</div>
+                </div>
+              </div>
+              <div class="tooltip-wrap">
+                <div class="key-switch off" id="key-pen2" onclick="toggleKey('pen2')">
+                  <div class="key-switch-icon">💧</div>
+                  <div class="key-switch-label">ПЭН-2</div>
+                  <div class="key-switch-state" id="pen2-state">ВЫКЛ</div>
+                </div>
+              </div>
+              <div class="tooltip-wrap">
+                <div class="key-switch off" id="key-tkd" onclick="toggleKey('tkd')">
+                  <div class="key-switch-icon">🔄</div>
+                  <div class="key-switch-label">ТКД</div>
+                  <div class="key-switch-state" id="tkd-state">ВЫКЛ</div>
+                </div>
+                <div class="tooltip-box">Турбопитательные насосы — используются при высокой мощности реактора.</div>
+              </div>
+              <div class="tooltip-wrap">
+                <div class="key-switch off" id="key-ru-pg" onclick="toggleKey('ru-pg')">
+                  <div class="key-switch-icon">🎚</div>
+                  <div class="key-switch-label">РУ-ПГ АВТ</div>
+                  <div class="key-switch-state" id="ru-pg-state">АВТ</div>
+                </div>
+                <div class="tooltip-box">Регулятор уровня в парогенераторах. В ручном режиме — прямое управление клапанами.</div>
+              </div>
+              <button class="btn btn-warn" onclick="startAPN()">
+                <div class="btn-led warn"></div>
+                АПН ВКЛ
+              </button>
+            </div>
+            <!-- РКПВ -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;border:1px solid var(--border-dim);padding:8px;background:#000;">
+              <div style="font-size:9px;color:var(--text-dim);grid-column:1/-1;letter-spacing:1px;margin-bottom:4px;">РКПВ — КЛАПАНЫ ПИТАТЕЛЬНОЙ ВОДЫ</div>
+              <div style="font-size:10px;color:var(--cyan)">ПГ-1: <span id="rkpv1">50</span>%
+                <input type="range" min="0" max="100" value="50" style="width:100%;height:2px" oninput="setRKPV(1,this.value)">
+              </div>
+              <div style="font-size:10px;color:var(--cyan)">ПГ-2: <span id="rkpv2">50</span>%
+                <input type="range" min="0" max="100" value="50" style="width:100%;height:2px" oninput="setRKPV(2,this.value)">
+              </div>
+              <div style="font-size:10px;color:var(--cyan)">ПГ-3: <span id="rkpv3">50</span>%
+                <input type="range" min="0" max="100" value="50" style="width:100%;height:2px" oninput="setRKPV(3,this.value)">
+              </div>
+              <div style="font-size:10px;color:var(--cyan)">ПГ-4: <span id="rkpv4">50</span>%
+                <input type="range" min="0" max="100" value="50" style="width:100%;height:2px" oninput="setRKPV(4,this.value)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SVRK MODE -->
+      <div class="flex-row" style="margin-bottom:12px;">
+        <button class="btn btn-active" id="svrk-dpz" onclick="setSVRK('dpz')">СВРК: ТОКИ ДПЗ</button>
+        <button class="btn" id="svrk-tc" onclick="setSVRK('tc')">СВРК: ТЕРМОПАРЫ</button>
+        <div class="key-switch off" id="key-blok" onclick="toggleKey('blok')" style="flex-direction:row;gap:8px;padding:6px 12px;">
+          <div class="key-switch-icon">🔒</div>
+          <div style="display:flex;flex-direction:column;">
+            <div class="key-switch-label">БЛОКИРОВКА ПЕРЕГРУЗКИ</div>
+            <div class="key-switch-state" id="blok-state">РАЗРЕШ.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: CARTOGRAM -->
+    <div id="tab-content-cartogram" style="display:none">
+      <div class="cartogram-container">
+        <div class="cartogram-title">КАРТОГРАММА АКТИВНОЙ ЗОНЫ ВВЭР-1000 · 163 ТВС</div>
+        <canvas id="cartogram-canvas" width="560" height="500"></canvas>
+        <div class="cartogram-legend">
+          <div class="legend-item"><div class="legend-color" style="background:#ff2222"></div>Горячая зона</div>
+          <div class="legend-item"><div class="legend-color" style="background:#ff8800"></div>Высокая нагрузка</div>
+          <div class="legend-item"><div class="legend-color" style="background:#ffcc00"></div>Норма</div>
+          <div class="legend-item"><div class="legend-color" style="background:#00ff88"></div>Рабочая</div>
+          <div class="legend-item"><div class="legend-color" style="background:#0055ff"></div>Стержень СУЗ</div>
+          <div class="legend-item"><div class="legend-color" style="background:#222244"></div>Пустая</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: SAFETY -->
+    <div id="tab-content-safety" style="display:none">
+      <div class="section">
+        <div class="section-header">САОЗ — Системы аварийного охлаждения</div>
+        <div class="section-body flex-col">
+          <div class="flex-row">
+            <div class="tooltip-wrap" style="flex:1">
+              <button class="btn btn-emergency w100" onclick="startSAOZ('vd')">
+                <div class="btn-led err"></div>
+                САОЗ-ВД ПУСК
+              </button>
+              <div class="tooltip-box">Аварийное охлаждение зоны высокого давления. Бор в первый контур при малых течах.</div>
+            </div>
+            <div class="tooltip-wrap" style="flex:1">
+              <button class="btn btn-emergency w100" onclick="startSAOZ('nd')">
+                <div class="btn-led err"></div>
+                САОЗ-НД ПУСК
+              </button>
+              <div class="tooltip-box">САОЗ низкого давления. Заливает зону из баков-приямков при большой течи первого контура.</div>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div class="tooltip-wrap" style="flex:1">
+              <div class="key-switch on" id="key-ga" onclick="toggleKey('ga')">
+                <div class="key-switch-icon">💧</div>
+                <div class="key-switch-label">ГИДРОАККУМ. САОЗ</div>
+                <div class="key-switch-state" id="ga-state">ОТКРЫТО</div>
+              </div>
+              <div class="tooltip-box">Блокировка пассивного залива. В норме — ОТКРЫТО. Закрывать только при плановом останове.</div>
+            </div>
+            <div class="tooltip-wrap" style="flex:1">
+              <button class="btn btn-blue w100" onclick="startSprinkler()">
+                <div class="btn-led blue"></div>
+                СПРИНКЛЕР ТЕСТ/ПУСК
+              </button>
+              <div class="tooltip-box">Водяное орошение под куполом ГО. Падение давления и температуры. Вымывание радионуклидов.</div>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div class="tooltip-wrap" style="flex:1">
+              <div class="key-switch on" id="key-bzik" onclick="toggleKey('bzik')">
+                <div class="key-switch-icon">🚪</div>
+                <div class="key-switch-label">БЗИК — ИЗОЛЯЦИЯ</div>
+                <div class="key-switch-state" id="bzik-state">ОТКРЫТО</div>
+              </div>
+              <div class="tooltip-box">Быстродействующие изолирующие клапаны. Герметизация реакторного зала, предотвращение выброса радиации.</div>
+            </div>
+            <button class="btn btn-warn" style="flex:1" id="btn-pg-protect" onclick="triggerPGProtect()">
+              <div class="btn-led warn"></div>
+              ЗАЩИТА ПГ — СВЕРХВЫСОК. УРОВЕНЬ
+            </button>
+          </div>
+          <div class="flex-row">
+            <button class="btn" style="flex:1" id="btn-pg-produvka" onclick="togglePGProduvka()">
+              <div class="btn-led" id="led-pg-produvka"></div>
+              ПРОДУВКА ПГ (СОЛЬ)
+            </button>
+            <button class="btn btn-emergency" style="flex:1" onclick="confirmBZIKClose()">
+              🔒 ГЕРМЕТИЗИРОВАТЬ ГО (БЗИК ЗАКРЫТЬ)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATUS SAFETY -->
+      <div class="section">
+        <div class="section-header">Состояние систем безопасности</div>
+        <div class="section-body">
+          <div class="indicator-group" style="width:100%">
+            <div class="indicator normal" id="ind-go-pressure">
+              <div class="indicator-label">Давл. под ГО</div>
+              <div class="indicator-value" id="val-go-pressure" style="color:var(--green)">0.101</div>
+              <div class="indicator-unit">МПа</div>
+              <div class="indicator-bar"><div class="indicator-bar-fill" id="bar-go-pressure" style="width:1%"></div></div>
+            </div>
+            <div class="indicator" id="ind-tiu">
+              <div class="indicator-label">ТИУ — Уровень в АЗ</div>
+              <div class="indicator-value" id="val-tiu" style="color:var(--cyan)">350</div>
+              <div class="indicator-unit">см</div>
+              <div class="indicator-bar"><div class="indicator-bar-fill" id="bar-tiu" style="width:90%;background:var(--cyan)"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: SRPP -->
+    <div id="tab-content-srpp" style="display:none">
+      <div class="srpp-log" id="srpp-log">
+        <div class="srpp-header">СРПП — СИСТЕМА РЕГИСТРАЦИИ ПАРАМЕТРОВ ПРОЦЕССА</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="panel" style="border-left:1px solid var(--border-dim)">
+    <div class="panel-title">ГЦН и Насосы</div>
+
+    <!-- PUMPS -->
+    <div class="section">
+      <div class="section-header">Главные циркуляционные насосы</div>
+      <div class="section-body">
+        <div class="pump-grid" style="width:100%">
+          <!-- GCN 1 -->
+          <div class="pump-card" id="pump-gcn1">
+            <div class="pump-header">
+              <div class="pump-name">ГЦН-1</div>
+              <div class="pump-status-badge running" id="gcn1-badge">РАБ</div>
+            </div>
+            <div class="pump-metrics">
+              <div class="pump-metric-label">Расход</div>
+              <div class="pump-metric-value" id="gcn1-flow" style="color:var(--green)">22 000</div>
+              <div class="pump-metric-label">Эл.мощн.</div>
+              <div class="pump-metric-value" id="gcn1-power" style="color:var(--yellow)">7.2</div>
+            </div>
+            <div style="font-size:9px;color:var(--text-dim);display:flex;justify-content:space-between;margin-top:2px;">
+              <span>м³/ч</span><span>МВт</span>
+            </div>
+            <div class="pump-btns">
+              <button class="btn btn-on" id="gcn1-on" onclick="setGCN(1,true)">ВКЛ</button>
+              <button class="btn btn-off" id="gcn1-off" onclick="setGCN(1,false)">ВЫКЛ</button>
+            </div>
+          </div>
+
+          <!-- GCN 2 -->
+          <div class="pump-card" id="pump-gcn2">
+            <div class="pump-header">
+              <div class="pump-name">ГЦН-2</div>
+              <div class="pump-status-badge running" id="gcn2-badge">РАБ</div>
+            </div>
+            <div class="pump-metrics">
+              <div class="pump-metric-label">Расход</div>
+              <div class="pump-metric-value" id="gcn2-flow" style="color:var(--green)">22 000</div>
+              <div class="pump-metric-label">Эл.мощн.</div>
+              <div class="pump-metric-value" id="gcn2-power" style="color:var(--yellow)">7.2</div>
+            </div>
+            <div style="font-size:9px;color:var(--text-dim);display:flex;justify-content:space-between;margin-top:2px;">
+              <span>м³/ч</span><span>МВт</span>
+            </div>
+            <div class="pump-btns">
+              <button class="btn btn-on" id="gcn2-on" onclick="setGCN(2,true)">ВКЛ</button>
+              <button class="btn btn-off" id="gcn2-off" onclick="setGCN(2,false)">ВЫКЛ</button>
+            </div>
+          </div>
+
+          <!-- GCN 3 -->
+          <div class="pump-card" id="pump-gcn3">
+            <div class="pump-header">
+              <div class="pump-name">ГЦН-3</div>
+              <div class="pump-status-badge running" id="gcn3-badge">РАБ</div>
+            </div>
+            <div class="pump-metrics">
+              <div class="pump-metric-label">Расход</div>
+              <div class="pump-metric-value" id="gcn3-flow" style="color:var(--green)">22 000</div>
+              <div class="pump-metric-label">Эл.мощн.</div>
+              <div class="pump-metric-value" id="gcn3-power" style="color:var(--yellow)">7.2</div>
+            </div>
+            <div style="font-size:9px;color:var(--text-dim);display:flex;justify-content:space-between;margin-top:2px;">
+              <span>м³/ч</span><span>МВт</span>
+            </div>
+            <div class="pump-btns">
+              <button class="btn btn-on" id="gcn3-on" onclick="setGCN(3,true)">ВКЛ</button>
+              <button class="btn btn-off" id="gcn3-off" onclick="setGCN(3,false)">ВЫКЛ</button>
+            </div>
+          </div>
+
+          <!-- GCN 4 -->
+          <div class="pump-card" id="pump-gcn4">
+            <div class="pump-header">
+              <div class="pump-name">ГЦН-4</div>
+              <div class="pump-status-badge running" id="gcn4-badge">РАБ</div>
+            </div>
+            <div class="pump-metrics">
+              <div class="pump-metric-label">Расход</div>
+              <div class="pump-metric-value" id="gcn4-flow" style="color:var(--green)">22 000</div>
+              <div class="pump-metric-label">Эл.мощн.</div>
+              <div class="pump-metric-value" id="gcn4-power" style="color:var(--yellow)">7.2</div>
+            </div>
+            <div style="font-size:9px;color:var(--text-dim);display:flex;justify-content:space-between;margin-top:2px;">
+              <span>м³/ч</span><span>МВт</span>
+            </div>
+            <div class="pump-btns">
+              <button class="btn btn-on" id="gcn4-on" onclick="setGCN(4,true)">ВКЛ</button>
+              <button class="btn btn-off" id="gcn4-off" onclick="setGCN(4,false)">ВЫКЛ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLOW TOTAL -->
+    <div class="section">
+      <div class="section-header">Суммарный расход 1К</div>
+      <div class="section-body">
+        <div class="big-display" style="width:100%">
+          <div class="big-display-label">РАСХОД ТЕПЛОНОСИТЕЛЯ</div>
+          <div class="big-display-value" id="total-flow" style="color:var(--blue);font-size:30px;">88 000</div>
+          <div class="big-display-unit">м³/ч (4 петли)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ДПЗ -->
+    <div class="section">
+      <div class="section-header">ДПЗ — Датчики прямого заряда</div>
+      <div class="section-body">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;width:100%">
+          <!-- 25 DPZ indicators -->
+          <div id="dpz-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SRPП MINI LOG -->
+    <div class="panel-title" style="margin-top:12px;">АКНП</div>
+    <div class="section">
+      <div class="section-header">Аппаратура контроля нейтронного потока</div>
+      <div class="section-body flex-col">
+        <div class="big-display" style="padding:10px">
+          <div class="big-display-label">НЕЙТР. ПОТОК (Фн)</div>
+          <div class="big-display-value" id="neutron-flux" style="color:var(--green);font-size:28px;">7.52e13</div>
+          <div class="big-display-unit">нейтр/см²·с</div>
+        </div>
+        <div class="indicator normal" id="ind-period-akнп">
+          <div class="indicator-label">Период реактора</div>
+          <div class="indicator-value" id="val-period" style="color:var(--cyan)">∞</div>
+          <div class="indicator-unit">с</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- CONFIRMATION MODAL -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">ПОДТВЕРЖДЕНИЕ</div>
+    <div class="modal-body" id="modal-body">Вы уверены?</div>
+    <div class="modal-btns">
+      <button class="btn btn-emergency modal-btn-confirm" id="modal-confirm" onclick="executeConfirmed()">ПОДТВЕРДИТЬ</button>
+      <button class="btn modal-btn-cancel" onclick="closeModal()">ОТМЕНА</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>БЩУ ВВЭР-1000 </div>
+  <div>ЭНЕРГОБЛОК №1 </div>
+  <div>СРПП АКТИВНА · ВСЕ ДЕЙСТВИЯ ФИКСИРУЮТСЯ</div>
+</footer>
+
+<script>
+// ============================================
+// AUDIO ENGINE
+// ============================================
+let audioCtx = null;
+let bgNoiseNodes = [];
+let alarmActive = false;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  startBackgroundHum();
+}
+
+function startBackgroundHum() {
+  if (!audioCtx) return;
+  const ctx = audioCtx;
+
+  // Low 50Hz hum - transformer/pump sound
+  function createHumLayer(freq, type, gain, detune) {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    if (detune) osc.detune.value = detune;
+    g.gain.value = gain;
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start();
+    return { osc, gain: g };
+  }
+
+  bgNoiseNodes.push(createHumLayer(50, 'sine', 0.015));
+  bgNoiseNodes.push(createHumLayer(100, 'sine', 0.008));
+  bgNoiseNodes.push(createHumLayer(150, 'sine', 0.004));
+  bgNoiseNodes.push(createHumLayer(200, 'sine', 0.003));
+
+  // Pump rumble - low frequency noise
+  function createNoiseBand(freq, q, gainVal) {
+    const bufSize = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
+
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = freq;
+    filter.Q.value = q;
+
+    const g = ctx.createGain();
+    g.gain.value = gainVal;
+
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(ctx.destination);
+    src.start();
+    return { src, filter, gain: g };
+  }
+
+  bgNoiseNodes.push(createNoiseBand(80, 3, 0.012));
+  bgNoiseNodes.push(createNoiseBand(670, 4.5, 0.003));
+  bgNoiseNodes.push(createNoiseBand(1200, 6, 0.001));
+
+  // Subtle rhythmic pump pulsation
+  function pumpPulse() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(55, t);
+    osc.frequency.exponentialRampToValueAtTime(48, t + 0.3);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.008, t + 0.05);
+    g.gain.linearRampToValueAtTime(0, t + 0.35);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + 0.4);
+    setTimeout(pumpPulse, 800 + Math.random() * 400);
+  }
+  pumpPulse();
+}
+
+function playButtonClick() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  // Main thud
+  const noiseNode = audioCtx.createBufferSource();
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.04, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  noiseNode.buffer = buf;
+
+  const noiseFilter = audioCtx.createBiquadFilter();
+  noiseFilter.type = 'bandpass';
+  noiseFilter.frequency.value = 400;
+  noiseFilter.Q.value = 2;
+
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.setValueAtTime(0.035, t);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+
+  noiseNode.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(audioCtx.destination);
+
+  const mainOsc = audioCtx.createOscillator();
+  const mainGain = audioCtx.createGain();
+  mainOsc.type = 'sine';
+  mainOsc.frequency.setValueAtTime(180, t);
+  mainOsc.frequency.exponentialRampToValueAtTime(80, t + 0.04);
+  mainGain.gain.setValueAtTime(0.045, t);
+  mainGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  mainOsc.connect(mainGain); mainGain.connect(audioCtx.destination);
+
+  const subOsc = audioCtx.createOscillator();
+  const subGain = audioCtx.createGain();
+  subOsc.type = 'triangle';
+  subOsc.frequency.setValueAtTime(90, t);
+  subOsc.frequency.exponentialRampToValueAtTime(40, t + 0.036);
+  subGain.gain.setValueAtTime(0.03, t);
+  subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.036);
+  subOsc.connect(subGain); subGain.connect(audioCtx.destination);
+
+  const tUp = t + 0.045;
+  const releaseOsc = audioCtx.createOscillator();
+  const releaseGain = audioCtx.createGain();
+  releaseOsc.type = 'triangle';
+  releaseOsc.frequency.setValueAtTime(280, tUp);
+  releaseGain.gain.setValueAtTime(0.025, tUp);
+  releaseGain.gain.exponentialRampToValueAtTime(0.001, tUp + 0.02);
+  releaseOsc.connect(releaseGain); releaseGain.connect(audioCtx.destination);
+
+  const releaseClick = audioCtx.createOscillator();
+  const releaseClickGain = audioCtx.createGain();
+  releaseClick.type = 'sine';
+  releaseClick.frequency.setValueAtTime(3100, tUp);
+  releaseClickGain.gain.setValueAtTime(0.015, tUp);
+  releaseClickGain.gain.exponentialRampToValueAtTime(0.0001, tUp + 0.01);
+  releaseClick.connect(releaseClickGain); releaseClickGain.connect(audioCtx.destination);
+
+  noiseNode.start(t);
+  mainOsc.start(t); mainOsc.stop(t + 0.04);
+  subOsc.start(t); subOsc.stop(t + 0.036);
+  releaseOsc.start(tUp); releaseOsc.stop(tUp + 0.025);
+  releaseClick.start(tUp); releaseClick.stop(tUp + 0.015);
+}
+
+function generateRoarPulse(startTime) {
+  if (!audioCtx) return;
+  const ctx = audioCtx;
+  const duration = 300;
+  const gens = [
+    { f: 50, t: 'sawtooth', d: 0 },
+    { f: 100, t: 'square', d: 0 },
+    { f: 600, t: 'sawtooth', d: (Math.random() * 8 - 4) },
+    { f: 735, t: 'sawtooth', d: (Math.random() * 10 - 5) },
+    { f: 850, t: 'square', d: (Math.random() * 6 - 3) }
+  ];
+
+  gens.forEach(gen => {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = gen.t;
+    osc.detune.value = gen.d;
+    osc.frequency.setValueAtTime(gen.f * 0.3, startTime);
+    osc.frequency.exponentialRampToValueAtTime(gen.f, startTime + 1.5);
+    osc.frequency.setValueAtTime(gen.f, startTime + (duration - 1));
+    g.gain.setValueAtTime(0, startTime);
+    g.gain.linearRampToValueAtTime(0.025, startTime + 1);
+    g.gain.setValueAtTime(0.025, startTime + (duration - 1));
+    g.gain.linearRampToValueAtTime(0, startTime + duration);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(startTime); osc.stop(startTime + duration);
+  });
+}
+
+function playFourMinuteAlarm() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const duration = 300; // 5 минут (300 секунд)
+  const layers = [{ f: 1000, d: 0 }, { f: 1005, d: 10 }, { f: 500, d: -5 }];
+
+  layers.forEach(l => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.detune.value = l.d;
+    
+    osc.frequency.setValueAtTime(200, t);
+    osc.frequency.exponentialRampToValueAtTime(l.f, t + 4);
+    osc.frequency.exponentialRampToValueAtTime(200, t + 10);
+    
+    // УПРАВЛЕНИЕ ГРОМКОСТЬЮ:
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.06, t + 2); // Разгон до макс. громкости за 2 сек
+    
+    // ИСПРАВЛЕНО: Принудительно удерживаем громкость 0.06 вплоть до конца сирены
+    g.gain.linearRampToValueAtTime(0.06, t + (duration - 0.1)); 
+    
+    g.gain.linearRampToValueAtTime(0, t + duration); // Красивое затухание в ноль за 0.1 сек
+    
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + duration);
+  });
+}
+
+// ============================================
+// REACTOR STATE
+// ============================================
+let state = {
+  neutronPower: 75.2,
+  targetPower: 75.2,
+  reactorPeriod: Infinity,
+  elecPower: 728,
+  pressure1K: 15.72,
+  tempIn: 291.4,
+  tempOut: 322.1,
+  thermalPower: 2248,
+  kdLevel: 65,
+  pgLevels: [52, 53, 51, 52],
+  steamPressure: 6.28,
+  turbPower: 728,
+  boricConc: 8.20,
+  pH: 7.1,
+  conductivity: 2.4,
+  radiation: 0.12,
+  h2: 0.3,
+  o2: 0.1,
+  tiu: 350,
+  goPressure: 0.101,
+  flux: 7.52e13,
+
+  // Control states
+  gcn: [true, true, true, true],
+  gcnFlow: [22000, 22000, 22000, 22000],
+  gcnPower: [7.2, 7.2, 7.2, 7.2],
+
+  rodPositions: { 'РГ-1': 75, 'РГ-2': 72, 'РГ-3': 70, 'КГ-1': 85, 'КГ-2': 80, 'АГ': 90 },
+  selectedGroup: 'РГ-1',
+
+  armEnabled: false,
+  scram: false,
+  turbineOnline: true,
+  syncEnabled: false,
+  pendingAction: null,
+
+  borNag: false,
+  borClean: false,
+  produvka: false,
+  hydrazin: false,
+  svo: false,
+  ion: false,
+  rekombin: false,
+  svrkMode: 'dpz',
+  aknpRange: 'power',
+
+  pgRKPV: [50, 50, 50, 50],
+  pgProduvka: false,
+  saozVD: false,
+  saozND: false,
+
+  keyStates: {
+    arm: false, 'arm-perekl': false, 'dir-suz': false,
+    brouk: false, broua: false, pen1: false, pen2: false,
+    tkd: false, 'ru-pg': false, blok: false,
+    ga: true, bzik: true
+  },
+
+  time: 0,
+  alarmTimer: null,
+};
+
+// ============================================
+// LOGIC SIMULATION
+// ============================================
+function simulationStep() {
+  state.time++;
+
+  // ARM auto-regulation
+  if (state.armEnabled && !state.scram) {
+    const diff = state.targetPower - state.neutronPower;
+    if (Math.abs(diff) > 0.2) {
+      const delta = diff * 0.03;
+      state.neutronPower += delta;
+      // Move rods slowly
+      const rodDelta = diff * 0.05;
+      adjustSelectedRod(rodDelta);
+    }
+  }
+
+  // Boric acid effects
+  if (state.borNag && !state.scram) {
+    state.neutronPower = Math.max(0, state.neutronPower - 0.08);
+    state.boricConc = Math.min(40, state.boricConc + 0.005);
+    if (state.boricConc > 10) state.pH = Math.min(8.5, state.pH + 0.002);
+  }
+  if (state.borClean && !state.scram) {
+    state.neutronPower = Math.min(105, state.neutronPower + 0.06);
+    state.boricConc = Math.max(0, state.boricConc - 0.004);
+  }
+
+  // Power physics - thermal follows neutron with inertia
+  const thermTarget = state.neutronPower * 29.97;
+  state.thermalPower += (thermTarget - state.thermalPower) * 0.05;
+
+  // Temperatures follow thermal power
+  const tempDelta = (state.thermalPower - 2248) * 0.004;
+  state.tempOut = 322.1 + tempDelta;
+  state.tempIn = 291.4 + tempDelta * 0.6;
+
+  // GCN-off effect - fewer pumps = less cooling = heat buildup
+  const gcnCount = state.gcn.filter(Boolean).length;
+  if (gcnCount < 4 && !state.scram) {
+    const heatFactor = (4 - gcnCount) * 0.8;
+    state.tempOut += heatFactor;
+    state.tempIn += heatFactor * 0.5;
+    if (gcnCount === 0) {
+      // LOCA-like: massive heat buildup
+      state.tiu = Math.max(0, state.tiu - 2);
+      state.pressure1K -= 0.01;
+      logSRPP('КРИТИЧНО: Все ГЦН отключены! Циркуляция теплоносителя прекращена!', 'critical');
+      if (state.neutronPower > 5) triggerScram('ЛОКА: потеря охлаждения активной зоны');
+    }
+  }
+
+  // Total flow
+  let totalFlow = 0;
+  for (let i = 0; i < 4; i++) {
+    if (state.gcn[i]) {
+      state.gcnFlow[i] = 22000 + (Math.random() - 0.5) * 100;
+      state.gcnPower[i] = 7.2 + (Math.random() - 0.5) * 0.05;
+    } else {
+      state.gcnFlow[i] = 0;
+      state.gcnPower[i] = 0;
+    }
+    totalFlow += state.gcnFlow[i];
+  }
+  document.getElementById('total-flow').textContent = Math.round(totalFlow).toLocaleString('ru');
+
+  // Pressure follows KD level and temperatures
+  const tempFactor = ((state.tempOut - 322) + (state.tempIn - 291)) * 0.005;
+  state.pressure1K = 15.72 + tempFactor + (state.kdLevel - 65) * 0.01;
+  if (state.pressure1K > 17.5) {
+    logSRPP('АВАРИЙНО: Давление 1К превысило 17.5 МПа — ИПК КД!', 'critical');
+    triggerIPK();
+  }
+
+  // Period calculation
+  if (Math.abs(state.neutronPower) > 0.1) {
+    const rate = (state.neutronPower - (state._lastPower || state.neutronPower)) / 0.5;
+    if (Math.abs(rate) < 0.001) {
+      state.reactorPeriod = Infinity;
+    } else {
+      state.reactorPeriod = state.neutronPower / rate;
+    }
+  }
+  state._lastPower = state.neutronPower;
+
+  // Electric power follows neutron power (via turbine)
+  if (state.turbineOnline && state.syncEnabled) {
+    const targetElec = state.turbPower;
+    const maxAvail = state.thermalPower * 0.337;
+    const actualElec = Math.min(targetElec, maxAvail);
+    state.elecPower += (actualElec - state.elecPower) * 0.04;
+  } else {
+    state.elecPower = Math.max(0, state.elecPower - 5);
+  }
+
+  // Steam pressure
+  state.steamPressure = 6.28 + (state.thermalPower - 2248) * 0.0005;
+  if (!state.turbineOnline) state.steamPressure += 0.5;
+  if (state.keyStates.brouk) state.steamPressure = Math.max(4, state.steamPressure - 0.3);
+  if (state.keyStates.broua) state.steamPressure = Math.max(3, state.steamPressure - 0.5);
+
+  // KD level dynamics
+  if (state.produvka) state.kdLevel = Math.max(10, state.kdLevel - 0.05);
+  const podpitka = parseFloat(document.getElementById('podpitka').value);
+  state.kdLevel += (podpitka - 45) * 0.002;
+  state.kdLevel += (state.pressure1K - 15.72) * 0.01;
+  state.kdLevel = Math.max(5, Math.min(95, state.kdLevel));
+
+  // H2 under hermetic shell
+  if (state.neutronPower > 95 && !state.rekombin) {
+    state.h2 = Math.min(4, state.h2 + 0.002);
+  }
+  if (state.rekombin) state.h2 = Math.max(0.1, state.h2 - 0.01);
+
+  // H2 explosion danger
+  if (state.h2 > 4.0) {
+    logSRPP('КРИТИЧНО: H₂ превысил взрывоопасный порог 4%! Активируйте рекомбинаторы!', 'critical');
+    triggerScram('Взрывоопасная концентрация H₂ под ГО');
+  }
+
+  // Radiation follows power + GCN state
+  let radBase = 0.12 * (state.neutronPower / 75);
+  if (!state.svo) radBase *= 1.05;
+  if (state.saozVD || state.saozND) radBase *= 1.5;
+  state.radiation = radBase + (Math.random() - 0.5) * 0.01;
+
+  // Flux
+  state.flux = 7.52e13 * (state.neutronPower / 75.2);
+
+  // Automatic protection checks
+  if (state.neutronPower > 103 && !state.scram) {
+    logSRPP('АВАРИЙНО: Нейтронная мощность превысила 103% Nном — срабатывание АЗ!', 'critical');
+    triggerScram('Превышение нейтронной мощности');
+  }
+
+  if (state.pressure1K < 12.0 && !state.scram && state.time > 10) {
+    logSRPP('АВАРИЙНО: Давление 1К упало ниже 12 МПа — авария LOCA!', 'critical');
+    triggerScram('Падение давления первого контура — ЛОКА');
+    if (!state.saozND) { startSAOZ('nd'); }
+  }
+
+  if (state.tempOut > 340 && !state.scram) {
+    logSRPP('АВАРИЙНО: Температура теплоносителя на выходе из реактора превысила 340°C!', 'critical');
+    triggerScram('Перегрев теплоносителя');
+  }
+
+  // Average PG level
+  const avgPG = state.pgLevels.reduce((a, b) => a + b, 0) / 4;
+
+  // PG low level
+  if (avgPG < 15 && state.turbineOnline && state.neutronPower > 10) {
+    logSRPP('ПРЕДУПРЕЖДЕНИЕ: Низкий уровень воды в ПГ. Риск перегрева 1К!', 'warn');
+  }
+
+  // Random noise
+  state.neutronPower += (Math.random() - 0.5) * 0.04;
+  state.pressure1K += (Math.random() - 0.5) * 0.002;
+  state.neutronPower = Math.max(0, state.neutronPower);
+
+  // pH effects from hydrazin
+  if (state.hydrazin) {
+    state.pH = Math.min(8.5, state.pH + 0.001);
+    state.conductivity = Math.max(0.5, state.conductivity - 0.001);
+  }
+  if (state.ion) {
+    state.conductivity = Math.max(0.1, state.conductivity - 0.002);
+    state.radiation = Math.max(0.05, state.radiation - 0.001);
+  }
+
+  updateUI(avgPG);
+}
+
+function adjustSelectedRod(delta) {
+  const grp = state.selectedGroup;
+  if (state.rodPositions[grp] !== undefined) {
+    state.rodPositions[grp] = Math.max(0, Math.min(100, state.rodPositions[grp] + delta));
+  }
+}
+
+// ============================================
+// UI UPDATE
+// ============================================
+function updateUI(avgPG) {
+  // Neutron power
+  const np = state.neutronPower.toFixed(1);
+  const npEl = document.getElementById('neutron-power');
+  npEl.textContent = np;
+  npEl.style.color = state.neutronPower > 100 ? 'var(--red)' :
+                     state.neutronPower > 90  ? 'var(--yellow)' : 'var(--green)';
+  document.getElementById('neutron-trend').textContent =
+    state.scram ? 'АВАРИЙНОЕ СНИЖЕНИЕ' :
+    state.neutronPower > state.targetPower + 0.5 ? '▲ РОСТ' :
+    state.neutronPower < state.targetPower - 0.5 ? '▼ СНИЖЕНИЕ' : 'СТАБИЛЬНО';
+
+  // Period
+  const perEl = document.getElementById('reactor-period');
+  const perVal = document.getElementById('val-period');
+  const perStr = isFinite(state.reactorPeriod) ? Math.round(state.reactorPeriod) + '' : '∞';
+  perEl.textContent = perStr;
+  if (perVal) perVal.textContent = perStr;
+  perEl.style.color = Math.abs(state.reactorPeriod) < 30 ? 'var(--red)' :
+                      Math.abs(state.reactorPeriod) < 60 ? 'var(--yellow)' : 'var(--text-dim)';
+
+  // Electric power
+  setVal('elec-power', Math.round(state.elecPower));
+  document.getElementById('elec-trend').textContent = state.syncEnabled ? 'В СЕТИ' : 'ОТКЛЮЧЁН';
+
+  // Pressure
+  setIndicator('ind-pressure', 'val-pressure', 'bar-pressure', state.pressure1K, 3, 12.5, 16.2, (v) => (v/20)*100);
+
+  // Temperatures
+  setIndicator('ind-tin', 'val-tin', 'bar-tin', state.tempIn, 1, 260, 310, (v) => ((v-250)/120)*100);
+  setIndicator('ind-tout', 'val-tout', 'bar-tout', state.tempOut, 1, 295, 335, (v) => ((v-280)/100)*100);
+
+  // Thermal power
+  setIndicator('ind-tterm', 'val-tterm', 'bar-tterm', Math.round(state.thermalPower), 0, 2600, 3200, (v) => (v/3200)*100);
+
+  // KD
+  document.getElementById('kd-level').style.height = state.kdLevel + '%';
+  document.getElementById('kd-percent').textContent = Math.round(state.kdLevel) + '%';
+  const kdEl = document.getElementById('kd-percent');
+  kdEl.style.color = state.kdLevel < 20 || state.kdLevel > 85 ? 'var(--red)' :
+                     state.kdLevel < 30 || state.kdLevel > 75 ? 'var(--yellow)' : 'var(--blue)';
+
+  // PG level
+  setIndicator('ind-pg', 'val-pg', 'bar-pg', avgPG.toFixed(1), 1, 20, 70, (v) => v);
+  const pgBar = document.getElementById('bar-pg');
+  if (pgBar) pgBar.style.background = avgPG < 20 ? 'var(--red)' : 'var(--cyan)';
+
+  // Steam pressure
+  setIndicator('ind-steam', 'val-steam', 'bar-steam', state.steamPressure.toFixed(2), 2, 5.5, 7.5, (v) => (v/10)*100);
+
+  // Turbine power
+  setIndicator('ind-turb', 'val-turb', 'bar-turb', Math.round(state.elecPower), 0, 800, 1000, (v) => (v/1000)*100);
+
+  // Radiation
+  setIndicator('ind-rad', 'val-rad', 'bar-rad', state.radiation.toFixed(2), 2, 1, 5, (v) => (v/10)*100);
+  const radEl = document.getElementById('val-rad');
+  radEl.style.color = state.radiation > 5 ? 'var(--red)' : state.radiation > 1 ? 'var(--orange)' : 'var(--yellow)';
+  document.getElementById('rad-display').textContent = state.radiation.toFixed(2);
+
+  // H2
+  const h2El = document.getElementById('val-h2');
+  h2El.textContent = state.h2.toFixed(2);
+  h2El.style.color = state.h2 > 3 ? 'var(--red)' : state.h2 > 2 ? 'var(--yellow)' : 'var(--green)';
+  document.getElementById('h2-val').textContent = state.h2.toFixed(2);
+  document.getElementById('o2-val').textContent = state.o2.toFixed(2);
+
+  // Flux
+  document.getElementById('neutron-flux').textContent = state.flux.toExponential(2);
+
+  // Boric
+  document.getElementById('boric-val').textContent = state.boricConc.toFixed(2);
+  document.getElementById('ph-val').textContent = state.pH.toFixed(1);
+  document.getElementById('conduct-val').textContent = state.conductivity.toFixed(1);
+
+  // TIU
+  document.getElementById('val-tiu').textContent = Math.round(state.tiu);
+
+  // GCN
+  for (let i = 1; i <= 4; i++) {
+    const running = state.gcn[i-1];
+    const badge = document.getElementById(`gcn${i}-badge`);
+    badge.className = 'pump-status-badge ' + (running ? 'running' : 'stopped');
+    badge.textContent = running ? 'РАБ' : 'СТОП';
+    const flowEl = document.getElementById(`gcn${i}-flow`);
+    const powEl = document.getElementById(`gcn${i}-power`);
+    flowEl.textContent = running ? Math.round(state.gcnFlow[i-1]).toLocaleString('ru') : '0';
+    powEl.textContent = running ? state.gcnPower[i-1].toFixed(1) : '0.0';
+    flowEl.style.color = running ? 'var(--green)' : '#333';
+    powEl.style.color = running ? 'var(--yellow)' : '#333';
+  }
+
+  // Rod positions
+  updateRodDisplay();
+
+  // Update cartogram if visible
+  if (document.getElementById('tab-content-cartogram').style.display !== 'none') {
+    drawCartogram();
+  }
+}
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function setIndicator(indId, valId, barId, val, dec, warnLow, warnHigh, barFn) {
+  const ind = document.getElementById(indId);
+  const valEl = document.getElementById(valId);
+  const barEl = document.getElementById(barId);
+  const numVal = typeof val === 'string' ? parseFloat(val) : val;
+  if (valEl) valEl.textContent = typeof dec === 'number' ? (typeof val === 'string' ? val : numVal.toFixed(dec)) : val;
+  if (ind) {
+    ind.className = 'indicator ' + (numVal < warnLow || numVal > warnHigh ? 'warn' : 'normal');
+    if (numVal < warnLow * 0.9 || numVal > warnHigh * 1.05) ind.className = 'indicator danger';
+  }
+  if (barEl) {
+    const pct = Math.min(100, Math.max(0, barFn(numVal)));
+    barEl.style.width = pct + '%';
+    if (numVal < warnLow || numVal > warnHigh) barEl.style.background = 'var(--yellow)';
+    else barEl.style.background = 'var(--green)';
+  }
+}
+
+function updateRodDisplay() {
+  const groups = ['РГ-1', 'РГ-2', 'РГ-3', 'КГ-1', 'КГ-2', 'АГ'];
+  const ids = ['rg1', 'rg2', 'rg3', 'kg1', 'kg2', 'ag'];
+  groups.forEach((g, i) => {
+    const pos = Math.round(state.rodPositions[g]);
+    const fillEl = document.getElementById(`rod-${ids[i]}`);
+    const valEl = document.getElementById(`rod-${ids[i]}-val`);
+    if (fillEl) fillEl.style.height = pos + '%';
+    if (valEl) valEl.textContent = pos;
+    if (valEl) valEl.style.color = pos < 10 ? 'var(--red)' : pos < 20 ? 'var(--yellow)' : 'var(--green)';
+  });
+}
+
+// ============================================
+// CARTOGRAM
+// ============================================
+let cartogramData = [];
+
+function initCartogram() {
+  // VVER-1000: 163 FA in hexagonal arrangement
+  // Row sizes for hexagonal lattice
+  const rows = [7, 8, 9, 10, 11, 12, 13, 12, 13, 12, 11, 10, 9, 8, 7];
+  const startCols = [3, 2, 2, 1, 1, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3];
+
+  // Control rod positions (approximately 61 positions in VVER-1000)
+  const rodRows = [0,0,0,1,1,2,2,2,3,3,4,4,4,5,5,5,5,6,6,6,6,6,7,7,7,7,
+                   8,8,8,8,8,9,9,9,9,10,10,10,11,11,12,12,12,13,13,14,14,14];
+
+  cartogramData = [];
+  let totalFA = 0;
+
+  rows.forEach((count, row) => {
+    for (let col = 0; col < count; col++) {
+      // Random heat color
+      const rand = Math.random();
+      let type = 'normal';
+      if (rand < 0.05) type = 'hot';
+      else if (rand < 0.15) type = 'high';
+      else if (rand < 0.35) type = 'warm';
+
+      // Some are control rods
+      const isRod = (totalFA % 10 === 3 || totalFA % 13 === 7) && totalFA < 61;
+
+      cartogramData.push({
+        row, col: col + startCols[row],
+        type: isRod ? 'rod' : type,
+        power: Math.random() * 0.4 + 0.8,
+        addr: `${String(row+1).padStart(2,'0')}-${String(col+startCols[row]+1).padStart(2,'0')}`,
+        isRod
+      });
+      totalFA++;
+    }
+  });
+}
+
+function drawCartogram() {
+  const canvas = document.getElementById('cartogram-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const hexSize = 18;
+  const rows = [7, 8, 9, 10, 11, 12, 13, 12, 13, 12, 11, 10, 9, 8, 7];
+  const startCols = [3, 2, 2, 1, 1, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3];
+  const maxCols = 13;
+
+  const hexW = hexSize * Math.sqrt(3);
+  const hexH = hexSize * 2;
+  const offsetX = W / 2 - (maxCols * hexW) / 2;
+  const offsetY = H / 2 - (rows.length * hexH * 0.75) / 2;
+
+  let faIdx = 0;
+
+  rows.forEach((count, row) => {
+    for (let col = 0; col < count; col++) {
+      const fa = cartogramData[faIdx++];
+      if (!fa) return;
+
+      const cx = offsetX + (col + startCols[row]) * hexW + (row % 2 === 0 ? hexW/2 : 0) + hexW/2;
+      const cy = offsetY + row * hexH * 0.75 + hexH/2;
+
+      // Color based on type and mode
+      let fillColor;
+      if (fa.isRod) {
+        const rodPct = state.rodPositions[state.selectedGroup] / 100;
+        fillColor = `rgba(${Math.round(20 + 80*rodPct)}, ${Math.round(80 + 80*rodPct)}, ${Math.round(200 + 55*rodPct)}, 1)`;
+      } else if (state.svrkMode === 'dpz') {
+        const p = fa.power * (state.neutronPower / 100);
+        fillColor = p > 1.1 ? '#ff2222' : p > 1.0 ? '#ff6600' : p > 0.9 ? '#ffcc00' : '#00aa44';
+      } else {
+        // Thermocouple mode
+        const t = 280 + fa.power * 40 * (state.neutronPower / 100);
+        fillColor = t > 325 ? '#ff2222' : t > 315 ? '#ff8800' : t > 305 ? '#00aa88' : '#0044aa';
+      }
+
+      // Draw hexagon
+      ctx.beginPath();
+      for (let a = 0; a < 6; a++) {
+        const angle = Math.PI / 180 * (60 * a - 30);
+        const px = cx + hexSize * 0.9 * Math.cos(angle);
+        const py = cy + hexSize * 0.9 * Math.sin(angle);
+        a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Rod indicator
+      if (fa.isRod) {
+        ctx.fillStyle = 'rgba(0,200,255,0.8)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Address on hover (just tiny text for selected)
+      if (hexSize > 15) {
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '7px Share Tech Mono';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const val = state.svrkMode === 'dpz'
+          ? (fa.power * state.neutronPower / 100).toFixed(2)
+          : Math.round(280 + fa.power * 40 * state.neutronPower / 100) + '';
+        ctx.fillText(val, cx, cy);
+      }
+    }
+  });
+}
+
+// ============================================
+// BUTTON ACTIONS (ИСПРАВЛЕНО)
+// ============================================
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('button, .key-switch, .group-btn');
+  if (btn) {
+    // Безопасный запуск аудио-контекста
+    if (typeof initAudio === 'function') initAudio();
+    if (typeof playButtonClick === 'function') playButtonClick();
+  }
+});
+
+function triggerAZ5() {
+  // ИСПРАВЛЕНО: Используем стандартный confirm вместо несуществующего showConfirm
+  const checked = confirm('АЗ-5 — АВАРИЙНЫЙ СБРОС\n\nАварийная защита 5-го уровня. Мгновенный сброс ВСЕХ стержней СУЗ. Нейтронная мощность упадёт до остаточного тепловыделения. Действие НЕОБРАТИМО до получения разрешения на пуск.');
+  
+  if (checked) {
+    triggerScram('АЗ-5 нажата оператором вручную');
+    if (audioCtx && typeof generateRoarPulse === 'function') {
+      generateRoarPulse(audioCtx.currentTime);
+    }
+  }
+}
+
+function triggerBAZ() {
+  // ИСПРАВЛЕНО: Замена на стандартный confirm
+  const checked = confirm('БАЗ — БЫСТРАЯ АВАРИЙНАЯ ЗАЩИТА\n\nПринудительный высокоскоростной ввод поглощающих стержней. Эффект аналогичен АЗ-5 с вертикальным графиком падения мощности.');
+  
+  if (checked) {
+    triggerScram('БАЗ активирована оператором');
+    if (audioCtx && typeof generateRoarPulse === 'function') {
+      generateRoarPulse(audioCtx.currentTime);
+    }
+  }
+}
+
+function triggerUPZ() {
+  if (typeof initAudio === 'function') initAudio();
+  if (typeof playButtonClick === 'function') playButtonClick();
+  
+  logSRPP('УПЗ: Ускоренная предупредительная защита — погружение рабочих групп стержней', 'warn');
+  
+  state.targetPower = 50;
+  const groups = ['РГ-1', 'РГ-2', 'РГ-3'];
+  groups.forEach(g => { state.rodPositions[g] = Math.max(0, state.rodPositions[g] - 25); });
+  
+  if (audioCtx && typeof generateRoarPulse === 'function') {
+    generateRoarPulse(audioCtx.currentTime);
+  }
+  
+  // Безопасная проверка анимации вспышки
+  const btnUpz = document.getElementById('btn-upz');
+  if (btnUpz && typeof flash === 'function') flash(btnUpz, 'r');
+}
+
+function triggerTR() {
+  // ИСПРАВЛЕНО: Замена на стандартный confirm
+  const checked = confirm('ТР — ТЕХНОЛОГИЧЕСКИЙ РАСЦЕП\n\nОбесточивание цепи питания приводов стержней СУЗ. Все стержни падают в активную зону. Эффект = АЗ-5.');
+  
+  if (checked) {
+    triggerScram('ТР: Технологический расцеп. Обесточивание приводов СУЗ');
+    if (audioCtx && typeof generateRoarPulse === 'function') {
+      generateRoarPulse(audioCtx.currentTime);
+    }
+  }
+}
+
+function triggerDrain() {
+  // ИСПРАВЛЕНО: Замена на стандартный confirm
+  const checked = confirm('ДРЕНАЖ ПЕРВОГО КОНТУРА → ЖРО\n\nСлив теплоносителя в баки жидких радиоактивных отходов. Стремительное падение уровня в КД и давления первого контура. Использовать только при авариях или плановом дренаже.');
+  
+  if (checked) {
+    logSRPP('ДРЕНАЖ 1К → ЖРО: открыт. Быстрое падение уровня КД и давления!', 'warn');
+    state.kdLevel = Math.max(5, state.kdLevel - 15);
+    state.pressure1K -= 0.5;
+    if (audioCtx && typeof generateRoarPulse === 'function') {
+      generateRoarPulse(audioCtx.currentTime);
+    }
+  }
+}
+function triggerScram(reason) {
+  if (state.scram) return;
+  state.scram = true;
+
+  // Сброс стержней
+  Object.keys(state.rodPositions).forEach(g => { state.rodPositions[g] = 0; });
+
+  // Падение мощности
+  const dropPower = () => {
+    if (state.neutronPower > 3) {
+      state.neutronPower *= 0.85;
+      setTimeout(dropPower, 100);
+    } else {
+      state.neutronPower = 2 + Math.random() * 0.5; 
+    }
+  };
+  dropPower();
+
+  state.armEnabled = false;
+  state.targetPower = 2;
+
+  // Светодиоды
+  const az5led = document.getElementById('led-az5');
+  const bazled = document.getElementById('led-baz');
+  if (az5led) { az5led.className = 'btn-led err'; }
+  if (bazled) { bazled.className = 'btn-led err'; }
+
+  // Статус
+  document.getElementById('reactor-dot').style.background = 'var(--red)';
+  document.getElementById('reactor-dot').style.boxShadow = '0 0 8px var(--red)';
+  document.getElementById('reactor-status-text').textContent = 'АВАРИЯ — ЗАГЛУШЁН';
+
+  // Баннер
+  document.getElementById('alarm-banner').classList.add('active');
+  document.getElementById('alarm-banner').textContent = '⚠ АВАРИЙНАЯ ЗАЩИТА СРАБОТАЛА · ' + reason.toUpperCase() + ' · СРPP ФИКСИРУЕТ ⚠';
+
+  logSRPP('═══ АВАРИЯ: ' + reason + ' ═══', 'critical');
+  logSRPP('АЗ: Все стержни СУЗ сброшены. Позиция органов регулирования → 0%', 'critical');
+  logSRPP('АКНП: Нейтронная мощность → остаточное тепловыделения', 'critical');
+  logSRPP('СРПП: Предаварийный след зафиксирован. Буфер заблокирован.', 'critical');
+
+  // ИСПРАВЛЕНО: Перед запуском сирены и нарастания жестко инициализируем аудиоконтекст,
+  // так как клик по модальному окну мог его приглушить.
+  if (typeof initAudio === 'function') initAudio();
+  
+  if (audioCtx) {
+    if (typeof playFourMinuteAlarm === 'function') playFourMinuteAlarm();
+    if (typeof generateRoarPulse === 'function') generateRoarPulse(audioCtx.currentTime);
+  }
+
+  alarmActive = true;
+}
+
+function moveSUZ(dir) {
+  initAudio();
+  if (state.scram) { logSRPP('ОТКАЗ: Движение СУЗ заблокировано — реактор заглушён', 'warn'); return; }
+  const grp = state.selectedGroup;
+  const step = dir * 3;
+  const oldPos = state.rodPositions[grp];
+  state.rodPositions[grp] = Math.max(0, Math.min(100, oldPos + step));
+  const newPos = state.rodPositions[grp];
+
+  // Power effect
+  if (!state.armEnabled) {
+    const powerDelta = step * 0.5;
+    state.targetPower = Math.max(0, Math.min(105, state.neutronPower + powerDelta));
+    state.neutronPower += powerDelta * 0.3;
+  }
+
+  logSRPP(`СУЗ: ${grp} → ${dir > 0 ? 'ВВЕРХ' : 'ВНИЗ'} ${Math.abs(step)}% | Позиция: ${Math.round(oldPos)}% → ${Math.round(newPos)}%`, 'action');
+  flash(dir > 0 ? document.getElementById('btn-suz-up') : document.getElementById('btn-suz-dn'), 'g');
+
+  // Period becomes finite
+  state.reactorPeriod = dir > 0 ? 120 : -120;
+  setTimeout(() => { state.reactorPeriod = Infinity; }, 5000);
+}
+
+function stepMoveSUZ() {
+  if (state.scram) return;
+  const grp = state.selectedGroup;
+  const step = 1;
+  state.rodPositions[grp] = Math.max(0, Math.min(100, state.rodPositions[grp] + step));
+  logSRPP(`Шаговый ход СУЗ: ${grp} → ${Math.round(state.rodPositions[grp])}%`, 'action');
+}
+
+function selectGroup(btn, grp) {
+  document.querySelectorAll('.group-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.selectedGroup = grp;
+  logSRPP(`Выбрана группа СУЗ: ${grp}`, 'action');
+}
+
+function toggleKey(keyId) {
+  initAudio();
+  const key = document.getElementById('key-' + keyId);
+  const stateEl = document.getElementById(keyId + '-state');
+  state.keyStates[keyId] = !state.keyStates[keyId];
+  const on = state.keyStates[keyId];
+
+  if (key) { key.className = 'key-switch ' + (on ? 'on' : 'off'); }
+
+  // Specific key logic
+  switch (keyId) {
+    case 'arm':
+      state.armEnabled = on;
+      if (stateEl) stateEl.textContent = on ? 'АВТ' : 'ВЫКЛ';
+      logSRPP('АРМ: Автоматический регулятор мощности ' + (on ? 'включён' : 'отключён'), 'action');
+      break;
+    case 'arm-perekl':
+      if (stateEl) stateEl.textContent = on ? 'РЕЗ' : 'ОСН';
+      logSRPP('АРМ-ПЕРЕКЛ: Канал АКНП переключён на ' + (on ? 'резервный' : 'основной'), 'action');
+      break;
+    case 'dir-suz':
+      if (stateEl) stateEl.textContent = on ? 'РУЧН' : 'ВЫКЛ';
+      if (on) { state.armEnabled = false; state.keyStates.arm = false;
+        const armKey = document.getElementById('key-arm');
+        if (armKey) armKey.className = 'key-switch off';
+        const armState = document.getElementById('arm-state');
+        if (armState) armState.textContent = 'ВЫКЛ';
+      }
+      logSRPP('ДИР-СУЗ: ' + (on ? 'Ручное управление стержнями включено' : 'Автоматика восстановлена'), 'action');
+      break;
+    case 'brouk':
+      if (stateEl) stateEl.textContent = on ? 'ОТКР' : 'ЗАКР';
+      logSRPP('БРОУ-К: Сброс пара в конденсатор ' + (on ? 'открыт' : 'закрыт'), 'action');
+      break;
+    case 'broua':
+      if (stateEl) stateEl.textContent = on ? 'ОТКР' : 'ЗАКР';
+      logSRPP('БРОУ-А: Сброс пара в атмосферу ' + (on ? 'открыт' : 'закрыт'), on ? 'warn' : 'action');
+      break;
+    case 'pen1': if (stateEl) stateEl.textContent = on ? 'РАБ' : 'ВЫКЛ';
+      logSRPP('ПЭН-1: ' + (on ? 'Питательный насос включён' : 'Питательный насос отключён'), 'action');
+      break;
+    case 'pen2': if (stateEl) stateEl.textContent = on ? 'РАБ' : 'ВЫКЛ';
+      logSRPP('ПЭН-2: Резервный питательный насос ' + (on ? 'включён' : 'отключён'), 'action');
+      break;
+    case 'tkd': if (stateEl) stateEl.textContent = on ? 'РАБ' : 'ВЫКЛ';
+      logSRPP('ТКД: Турбопитательные насосы ' + (on ? 'подключены' : 'отключены'), 'action');
+      break;
+    case 'ru-pg': if (stateEl) stateEl.textContent = on ? 'РУЧ' : 'АВТ';
+      logSRPP('РУ-ПГ: ' + (on ? 'Ручное управление уровнем в ПГ' : 'Автоматический регулятор уровня ПГ'), 'action');
+      break;
+    case 'blok': if (stateEl) stateEl.textContent = on ? 'БЛОК' : 'РАЗРЕШ.';
+      logSRPP('БЛОКИРОВКА ПЕРЕГРУЗКИ: СУЗ ' + (on ? 'заблокированы' : 'разблокированы'), 'action');
+      break;
+    case 'ga':
+      if (stateEl) stateEl.textContent = on ? 'ОТКРЫТО' : 'ЗАКРЫТО';
+      logSRPP('Гидроаккумуляторы САОЗ: ' + (on ? 'открыты (норм.)' : 'ПЕРЕКРЫТЫ (опасно!)'), on ? 'action' : 'warn');
+      break;
+    case 'bzik':
+      if (stateEl) stateEl.textContent = on ? 'ОТКРЫТО' : 'ЗАКРЫТО';
+      logSRPP('БЗИК: Изолирующие клапаны ГО ' + (on ? 'открыты' : 'ЗАКРЫТЫ — ГО загерметизирована'), on ? 'action' : 'warn');
+      break;
+  }
+}
+
+function toggleSync() {
+  initAudio();
+  state.syncEnabled = !state.syncEnabled;
+  const key = document.getElementById('key-sync');
+  const stateEl = document.getElementById('sync-state');
+  if (key) key.className = 'key-switch ' + (state.syncEnabled ? 'on' : 'off');
+  if (stateEl) stateEl.textContent = state.syncEnabled ? 'В СЕТИ' : 'ВЫКЛ';
+  logSRPP('СИНХРОНИЗАЦИЯ: Генератор ' + (state.syncEnabled ? 'подключён к сети' : 'отключён от сети'), 'action');
+  if (state.syncEnabled && state.neutronPower < 20) {
+    logSRPP('ПРЕДУПРЕЖДЕНИЕ: Синхронизация при мощности < 20% Nном — нестабильный режим', 'warn');
+  }
+}
+
+function setGCN(num, on) {
+  initAudio();
+  const prev = state.gcn[num-1];
+  state.gcn[num-1] = on;
+  logSRPP(`ГЦН-${num}: ${on ? 'ВКЛЮЧЁН' : 'ОСТАНОВЛЕН'}`, on ? 'action' : 'warn');
+
+  const gcnCount = state.gcn.filter(Boolean).length;
+  if (gcnCount < 3 && !state.scram) {
+    logSRPP(`ПРЕДУПРЕЖДЕНИЕ: Работают только ${gcnCount} ГЦН из 4. Расход теплоносителя снижен!`, 'warn');
+  }
+  if (gcnCount === 0) {
+    logSRPP('КРИТИЧНО: ВСЕ ГЦН ОСТАНОВЛЕНЫ! Немедленная остановка реактора!', 'critical');
+    generateRoarPulse(audioCtx.currentTime);
+  }
+}
+
+function toggleBor(mode) {
+  initAudio();
+  if (mode === 'nag') {
+    state.borNag = !state.borNag;
+    state.borClean = false;
+    const led = document.getElementById('led-bor-nag');
+    const btn = document.getElementById('btn-bor-nag');
+    if (led) led.className = 'btn-led ' + (state.borNag ? 'on' : '');
+    if (btn) btn.className = 'btn ' + (state.borNag ? 'btn-on' : '');
+    logSRPP('Борное регулирование: НАГНЕТАНИЕ ' + (state.borNag ? 'включено — снижение мощности' : 'отключено'), 'action');
+  } else {
+    state.borClean = !state.borClean;
+    state.borNag = false;
+    const led = document.getElementById('led-bor-clean');
+    const btn = document.getElementById('btn-bor-clean');
+    if (led) led.className = 'btn-led ' + (state.borClean ? 'on' : '');
+    if (btn) btn.className = 'btn ' + (state.borClean ? 'btn-on' : '');
+    logSRPP('Борное регулирование: ЧИСТАЯ ВОДА ' + (state.borClean ? 'включена — рост мощности' : 'отключена'), 'action');
+  }
+}
+
+function startOBK(num) {
+  initAudio();
+  logSRPP(`ОБК №${num}: Насос высокого давления запущен. Ввод концентрата бора (40 г/кг) в первый контур`, 'warn');
+  state.boricConc = Math.min(40, state.boricConc + 2);
+  state.neutronPower = Math.max(0, state.neutronPower - 5);
+  generateRoarPulse(audioCtx.currentTime);
+}
+
+function setPodpitka(val) {
+  document.getElementById('podpitka-val').textContent = val + '%';
+  logSRPP(`Регулятор подпитки 1К: ${val}%`, 'action');
+}
+
+function toggleProduvka() {
+  initAudio();
+  state.produvka = !state.produvka;
+  const led = document.getElementById('led-produvka');
+  const btn = document.getElementById('btn-produvka');
+  if (led) led.className = 'btn-led ' + (state.produvka ? 'warn' : '');
+  if (btn) btn.className = 'btn ' + (state.produvka ? 'btn-warn btn-active' : '');
+  logSRPP('Продувка первого контура: ' + (state.produvka ? 'открыта — сброс теплоносителя в СВО' : 'закрыта'), 'action');
+}
+
+function toggleHydrazin() {
+  initAudio();
+  state.hydrazin = !state.hydrazin;
+  const led = document.getElementById('led-hydrazin');
+  if (led) led.className = 'btn-led ' + (state.hydrazin ? 'on' : '');
+  logSRPP('Насос гидразина: ' + (state.hydrazin ? 'включён — коррекция pH и электропроводности' : 'отключён'), 'action');
+}
+
+function toggleSVO() {
+  initAudio();
+  state.svo = !state.svo;
+  const led = document.getElementById('led-svo');
+  const btn = document.getElementById('btn-svo');
+  if (led) led.className = 'btn-led ' + (state.svo ? 'on' : '');
+  if (btn) btn.className = 'btn ' + (state.svo ? 'btn-on' : '');
+  logSRPP('СВО-1: Спецводоочистка 1К ' + (state.svo ? 'включена — снижение радиационного фона' : 'отключена'), 'action');
+}
+
+function toggleIon() {
+  initAudio();
+  state.ion = !state.ion;
+  const led = document.getElementById('led-ion');
+  const btn = document.getElementById('btn-ion');
+  if (led) led.className = 'btn-led ' + (state.ion ? 'on' : '');
+  if (btn) btn.className = 'btn ' + (state.ion ? 'btn-on' : '');
+  logSRPP('Ионообменный фильтр СВО: ' + (state.ion ? 'подключён — очистка от продуктов деления' : 'отключён'), 'action');
+}
+
+function gasRemoval(source) {
+  initAudio();
+  if (source === 'reactor') {
+    logSRPP('Газоудаление из головки реактора: сброс парогазовой смеси в барботажный бак', 'action');
+    state.pressure1K = Math.max(14, state.pressure1K - 0.05);
+    state.tiu += 5;
+  } else {
+    logSRPP('Газоудаление из КД: сброс неконденсирующихся газов (H₂, N₂) из КД', 'action');
+    state.kdLevel = Math.min(80, state.kdLevel - 1);
+    state.h2 = Math.max(0.1, state.h2 - 0.1);
+  }
+}
+
+function toggleRekombin() {
+  initAudio();
+  state.rekombin = !state.rekombin;
+  const led = document.getElementById('led-rekombin');
+  const btn = document.getElementById('btn-rekombin');
+  if (led) led.className = 'btn-led ' + (state.rekombin ? 'on' : 'warn');
+  if (btn) btn.className = 'btn ' + (state.rekombin ? 'btn-on' : 'btn-warn');
+  logSRPP('Рекомбинаторы H₂: ' + (state.rekombin ? 'ПРИНУДИТЕЛЬНО включены — снижение H₂ под ГО' : 'переведены в пассивный режим'), 'action');
+}
+
+function triggerDrain() {
+  initAudio();
+  showConfirm(
+    'ДРЕНАЖ ПЕРВОГО КОНТУРА → ЖРО',
+    'Слив теплоносителя в баки жидких радиоактивных отходов. Стремительное падение уровня в КД и давления первого контура. Использовать только при авариях или плановом дренаже.',
+    () => {
+      logSRPP('ДРЕНАЖ 1К → ЖРО: открыт. Быстрое падение уровня КД и давления!', 'warn');
+      state.kdLevel = Math.max(5, state.kdLevel - 15);
+      state.pressure1K -= 0.5;
+      generateRoarPulse(audioCtx.currentTime);
+    }
+  );
+}
+
+function toggleKD(mode) {
+  initAudio();
+  if (mode === 'gr1') {
+    logSRPP('ТЭН-КД Группа 1 (АРМ): переключена — автоматическое удержание давления 15.7 МПа', 'action');
+  } else if (mode === 'gr2') {
+    logSRPP('ТЭН-КД Группа 2 (мощный нагрев): включена — быстрый рост давления 1К', 'warn');
+    state.pressure1K += 0.1;
+    state.kdLevel += 2;
+  } else if (mode === 'inject') {
+    logSRPP('Клапан впрыска КД: открыт — конденсация пара, падение давления 1К', 'action');
+    state.pressure1K -= 0.15;
+  }
+}
+
+function triggerIPK() {
+  initAudio();
+  logSRPP('ИПК КД: Импульсно-предохранительный клапан ОТКРЫТ — сброс среды в барботажный бак!', 'critical');
+  state.pressure1K -= 0.5;
+  state.kdLevel -= 5;
+  state.radiation *= 1.3;
+  generateRoarPulse(audioCtx.currentTime);
+}
+
+function triggerStopValve() {
+  initAudio();
+  showConfirm(
+    'СТОП-КЛАПАН ТУРБИНЫ',
+    'Мгновенное перекрытие подачи пара на турбину. Электрическая мощность генератора упадёт до 0. Резкий рост давления во втором контуре.',
+    () => {
+      state.turbineOnline = false;
+      state.elecPower = 0;
+      state.syncEnabled = false;
+      const syncKey = document.getElementById('key-sync');
+      if (syncKey) syncKey.className = 'key-switch off';
+      const syncState = document.getElementById('sync-state');
+      if (syncState) syncState.textContent = 'ВЫКЛ';
+      logSRPP('СТОП-КЛАПАН ТУРБИНЫ: ЗАКРЫТ — турбина остановлена. Электрическая мощность → 0', 'warn');
+      generateRoarPulse(audioCtx.currentTime);
+      // Auto BROUK
+      if (!state.keyStates.brouk) {
+        state.keyStates.brouk = true;
+        const brEl = document.getElementById('key-brouk');
+        if (brEl) brEl.className = 'key-switch on';
+        const brState = document.getElementById('brouk-state');
+        if (brState) brState.textContent = 'ОТКР';
+        logSRPP('АВТО: БРОУ-К открыт — сброс пара в конденсатор', 'auto');
+      }
+    }
+  );
+}
+
+function setTurbPower(val) {
+  state.turbPower = parseInt(val);
+  document.getElementById('turb-power-val').textContent = val + ' МВт';
+  state.targetPower = Math.min(105, state.turbPower / 9.97);
+  logSRPP(`ЭЧСР: Задание мощности турбины → ${val} МВт`, 'action');
+}
+
+function changeTurbPower(delta) {
+  const slider = document.getElementById('turb-power-slider');
+  const newVal = Math.max(0, Math.min(1000, parseInt(slider.value) + delta));
+  slider.value = newVal;
+  setTurbPower(newVal);
+}
+
+function setARMTsr(val) {
+  document.getElementById('arm-tsr-val').textContent = val + '°C';
+  logSRPP(`АРМ: Уставка Т-средней установлена → ${val}°C`, 'action');
+}
+
+function setPGLevel(loop, val) {
+  state.pgLevels[loop-1] = parseFloat(val);
+  document.getElementById(`pg${loop}v`).textContent = val;
+  if (val < 20) {
+    logSRPP(`ПРЕДУПРЕЖДЕНИЕ: Низкий уровень в ПГ-${loop}: ${val}%! Риск перегрева.`, 'warn');
+  }
+  if (val > 90) {
+    logSRPP(`ПРЕДУПРЕЖДЕНИЕ: Высокий уровень в ПГ-${loop}: ${val}%! Риск заброса воды в турбину.`, 'warn');
+  }
+}
+
+function setRKPV(loop, val) {
+  state.pgRKPV[loop-1] = parseInt(val);
+  document.getElementById(`rkpv${loop}`).textContent = val;
+  // Affect PG level
+  const levelDelta = (val - 50) * 0.05;
+  state.pgLevels[loop-1] = Math.max(0, Math.min(100, state.pgLevels[loop-1] + levelDelta));
+  logSRPP(`РКПВ Петля ${loop}: открытие → ${val}%`, 'action');
+}
+
+function startSAOZ(type) {
+  initAudio();
+  const typeStr = type === 'vd' ? 'высокого давления' : 'низкого давления';
+  logSRPP(`САОЗ-${type.toUpperCase()}: ПУСК — аварийное охлаждение активной зоны ${typeStr}`, 'warn');
+  if (type === 'vd') {
+    state.saozVD = true;
+    state.boricConc = Math.min(40, state.boricConc + 5);
+    state.pressure1K += 0.3;
+  } else {
+    state.saozND = true;
+    state.tiu += 50;
+    state.pressure1K -= 0.2;
+  }
+  generateRoarPulse(audioCtx.currentTime);
+  playFourMinuteAlarm();
+}
+
+function startSprinkler() {
+  initAudio();
+  logSRPP('Спринклерная система ГО: ПУСК — орошение под куполом гермооболочки', 'action');
+  state.goPressure = Math.max(0.101, state.goPressure - 0.05);
+  state.radiation = Math.max(0.05, state.radiation * 0.9);
+}
+
+function confirmBZIKClose() {
+  showConfirm(
+    'ГЕРМЕТИЗАЦИЯ ГЕРМООБОЛОЧКИ',
+    'Закрытие всех БЗИК — полная герметизация реакторного зала. Технологические линии будут перекрыты. Это аварийная процедура.',
+    () => {
+      state.keyStates.bzik = false;
+      const bzikKey = document.getElementById('key-bzik');
+      if (bzikKey) bzikKey.className = 'key-switch off';
+      const bzikState = document.getElementById('bzik-state');
+      if (bzikState) bzikState.textContent = 'ЗАКРЫТО';
+      logSRPP('БЗИК: ВСЕ БЫСТРОДЕЙСТВУЮЩИЕ ИЗОЛИРУЮЩИЕ КЛАПАНЫ ЗАКРЫТЫ — ГО ЗАГЕРМЕТИЗИРОВАНА', 'critical');
+      generateRoarPulse(audioCtx.currentTime);
+    }
+  );
+}
+
+function triggerPGProtect() {
+  initAudio();
+  logSRPP('ЗАЩИТА ПГ: Отсечка подачи воды — уровень в ПГ превысил критический предел!', 'warn');
+  state.pgLevels = state.pgLevels.map(l => Math.min(l, 70));
+  generateRoarPulse(audioCtx.currentTime);
+}
+
+function togglePGProduvka() {
+  initAudio();
+  state.pgProduvka = !state.pgProduvka;
+  const led = document.getElementById('led-pg-produvka');
+  const btn = document.getElementById('btn-pg-produvka');
+  if (led) led.className = 'btn-led ' + (state.pgProduvka ? 'on' : '');
+  if (btn) btn.className = 'btn ' + (state.pgProduvka ? 'btn-active' : '');
+  logSRPP('Продувка ПГ по солесодержанию: ' + (state.pgProduvka ? 'открыта' : 'закрыта'), 'action');
+}
+
+function startAPN() {
+  initAudio();
+  logSRPP('АПН: Аварийный питательный насос запущен (дизель-генераторная система)', 'warn');
+  state.pgLevels = state.pgLevels.map(l => Math.min(60, l + 5));
+}
+
+function changeAKNP(range) {
+  initAudio();
+  state.aknpRange = range;
+  const labels = { source: 'АКНП: ДИАПАЗОН ИСТОЧНИКА', mid: 'АКНП: ПРОМЕЖУТОЧНЫЙ ДИАПАЗОН', power: 'АКНП: ДИАПАЗОН МОЩНОСТИ' };
+  document.getElementById('aknp-range').textContent = labels[range];
+  document.querySelectorAll('[id^=aknp]').forEach(el => el.classList.remove('btn-active'));
+  const el = document.getElementById('aknp-' + range);
+  if (el) el.classList.add('btn-active');
+  logSRPP(`АКНП: Переключён на диапазон "${labels[range]}"`, 'action');
+}
+
+function setSVRK(mode) {
+  initAudio();
+  state.svrkMode = mode;
+  document.getElementById('svrk-dpz').className = 'btn' + (mode === 'dpz' ? ' btn-active' : '');
+  document.getElementById('svrk-tc').className = 'btn' + (mode === 'tc' ? ' btn-active' : '');
+  logSRPP(`СВРК: Режим отображения → ${mode === 'dpz' ? 'токи ДПЗ' : 'температуры термопар'}`, 'action');
+  drawCartogram();
+}
+
+// ============================================
+// MODAL
+// ============================================
+let pendingAction = null;
+
+function showConfirm(title, body, callback) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').textContent = body;
+  pendingAction = callback;
+  document.getElementById('confirm-modal').classList.add('active');
+}
+
+function executeConfirmed() {
+  closeModal();
+  if (pendingAction) {
+    playButtonClick();
+    pendingAction();
+    pendingAction = null;
+  }
+}
+
+function closeModal() {
+  document.getElementById('confirm-modal').classList.remove('active');
+  pendingAction = null;
+}
+
+// ============================================
+// SRPП LOG
+// ============================================
+let logCount = 0;
+
+function logSRPP(msg, type = 'normal') {
+  const log = document.getElementById('srpp-log');
+  if (!log) return;
+  const now = new Date();
+  const ts = now.toTimeString().slice(0, 8) + '.' + String(now.getMilliseconds()).padStart(3, '0');
+  const entry = document.createElement('div');
+  entry.className = 'srpp-entry';
+  entry.innerHTML = `<span class="srpp-time">${ts}</span><span class="srpp-msg ${type}">[${type.toUpperCase()}] ${msg}</span>`;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+  logCount++;
+
+  // Keep last 200 entries
+  const entries = log.querySelectorAll('.srpp-entry');
+  if (entries.length > 200) entries[0].remove();
+}
+
+// ============================================
+// TABS
+// ============================================
+function showTab(tab) {
+  ['overview', 'cartogram', 'safety', 'srpp'].forEach(t => {
+    document.getElementById('tab-content-' + t).style.display = t === tab ? '' : 'none';
+    document.getElementById('tab-' + t).className = 'tab' + (t === tab ? ' active' : '');
+  });
+  if (tab === 'cartogram') { initAudio(); drawCartogram(); }
+  if (tab === 'srpp') {
+    const log = document.getElementById('srpp-log');
+    if (log) log.scrollTop = log.scrollHeight;
+  }
+}
+
+// ============================================
+// DPZ GRID
+// ============================================
+function initDPZ() {
+  const container = document.getElementById('dpz-grid');
+  if (!container) return;
+  let html = '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;">';
+  for (let i = 1; i <= 25; i++) {
+    const level = Math.random() * 0.5 + 0.6;
+    const color = level > 1.0 ? 'var(--red)' : level > 0.9 ? 'var(--yellow)' : 'var(--green)';
+    html += `<div style="border:1px solid #222;padding:4px;text-align:center;background:#000;" id="dpz-${i}">
+      <div style="font-size:8px;color:var(--text-dim)">ДПЗ-${String(i).padStart(2,'0')}</div>
+      <div style="font-family:Orbitron,monospace;font-size:10px;color:${color}" id="dpz-val-${i}">${level.toFixed(2)}</div>
+    </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function updateDPZ() {
+  for (let i = 1; i <= 25; i++) {
+    const el = document.getElementById(`dpz-val-${i}`);
+    if (!el) continue;
+    const base = 0.6 + (state.neutronPower / 100) * 0.5;
+    const level = base + (Math.random() - 0.5) * 0.05;
+    el.textContent = level.toFixed(2);
+    el.style.color = level > 1.0 ? 'var(--red)' : level > 0.9 ? 'var(--yellow)' : 'var(--green)';
+  }
+}
+
+// ============================================
+// CLOCK
+// ============================================
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toTimeString().slice(0, 8);
+}
+
+// ============================================
+// FLASH HELPER
+// ============================================
+function flash(el, type) {
+  if (!el) return;
+  const cls = type === 'r' ? 'flash-r' : 'flash-g';
+  el.classList.remove('flash-r', 'flash-g');
+  void el.offsetWidth;
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), 600);
+}
+
+// ============================================
+// INIT
+// ============================================
+initCartogram();
+initDPZ();
+logSRPP('СРПП запущена. Энергоблок №1 в работе. Все системы в норме.', 'normal');
+logSRPP('Нейтронная мощность: 75.2% Nном. Давление 1К: 15.72 МПа. Все 4 ГЦН работают.', 'normal');
+logSRPP('Турбогенератор: синхронизация ожидается. Мощность ЭЧСР: 728 МВт.', 'normal');
+
+// Start clock
+setInterval(updateClock, 1000);
+updateClock();
+
+// Main simulation loop
+setInterval(() => {
+  simulationStep();
+  if (logCount % 30 === 0) { // Every ~15 sec update DPZ
+    updateDPZ();
+  }
+}, 500);
+
+// Cartogram update
+setInterval(() => {
+  if (document.getElementById('tab-content-cartogram').style.display !== 'none') {
+    drawCartogram();
+  }
+}, 2000);
+
+// Initial audio context on first interaction
+document.addEventListener('keydown', initAudio, { once: true });
+document.addEventListener('touchstart', initAudio, { once: true });
+
+// Periodically log ambient data to SRPPP
+setInterval(() => {
+  if (Math.random() < 0.3) {
+    const msgs = [
+      `Автоматика: давление 1К = ${state.pressure1K.toFixed(2)} МПа — норма`,
+      `Контроль: нейтронная мощность = ${state.neutronPower.toFixed(1)}% Nном`,
+      `Мониторинг: уровень КД = ${Math.round(state.kdLevel)}% — норма`,
+      `Радиационный контроль: фон ${state.radiation.toFixed(2)} мкЗв/ч`,
+      `Борная кислота: концентрация ${state.boricConc.toFixed(2)} г/кг`,
+    ];
+    logSRPP(msgs[Math.floor(Math.random() * msgs.length)], 'normal');
+  }
+}, 10000);
+</script>
+</body>
+</html>
