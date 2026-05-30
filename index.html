@@ -3522,25 +3522,95 @@ function pressPGProtect() {
 function pressSAOZ_VD() {
   playBtnSound();
   initAudio();
-  state.saozVD = true;
+  
   const btn = document.getElementById('btn-saoz-vd');
-  btn.classList.add('active-red');
-  addLog('ALARM', '⚠ САОЗ-ВД ПУСК — Аварийное охлаждение зоны высокого давления. Борная кислота закачивается в 1К!');
-  addAlarm('saoz-vd', 'САОЗ-ВД АКТИВНА', 'red');
-  playFourMinuteAlarm();
-  showAlert('САОЗ-ВД АКТИВИРОВАНА', 'Система аварийного охлаждения зоны (ВД) запущена.\nНасосы высокого давления нагнетают бор в 1-й контур.\nДавление в контуре: АКТИВНО КОНТРОЛИРУЕТСЯ.');
+  
+  // === ВКЛЮЧЕНИЕ САОЗ-ВД ===
+  if (!state.saozVD) {
+    state.saozVD = true;
+    btn.classList.add('active-red');
+    addLog('ALARM', '⚠ САОЗ-ВД ПУСК — Аварийное охлаждение зоны высокого давления. Борная кислота закачивается в 1К!');
+    addAlarm('saoz-vd', 'САОЗ-ВД АКТИВНА', 'red');
+    
+    // ПРЕДОТВРАЩАЕМ НАЛОЖЕНИЕ: если сирена уже выла, принудительно глушим её перед новым пуском
+    if (typeof alarmOscillators !== 'undefined' && alarmOscillators.length > 0) {
+      stopSirenOscillators();
+    }
+    
+    playFourMinuteAlarm();
+    alarmActive = true;
+    
+    showAlert('САОЗ-ВД АКТИВНА', 'Система аварийного охлаждения зоны (ВД) запущена.');
+  } 
+  // === ОТКЛЮЧЕНИЕ САОЗ-ВД ===
+  else {
+    state.saozVD = false;
+    btn.classList.remove('active-red');
+    removeAlarm('saoz-vd');
+    
+    addLog('SYSTEM', 'САОЗ-ВД отключена оператором.');
+    
+    // Глушим сирену только если САОЗ-НД тоже выключена
+    if (!state.saozND) {
+      stopSirenOscillators();
+    }
+  }
 }
 
 function pressSAOZ_ND() {
   playBtnSound();
   initAudio();
-  state.saozND = true;
+  
   const btn = document.getElementById('btn-saoz-nd');
-  btn.classList.add('active-red');
-  addLog('ALARM', '⚠ САОЗ-НД ПУСК — Аварийное охлаждение низкого давления. Заливка зоны из баков-приямков!');
-  addAlarm('saoz-nd', 'САОЗ-НД АКТИВНА', 'red');
-  playFourMinuteAlarm();
-  showAlert('САОЗ-НД АКТИВИРОВАНА', 'Система аварийного охлаждения зоны (НД) запущена.\nЗаливка активной зоны из баков-приямков.\nИспользуется при большой течи 1-го контура.');
+  
+  // === ВКЛЮЧЕНИЕ САОЗ-НД ===
+  if (!state.saozND) {
+    state.saozND = true;
+    btn.classList.add('active-red');
+    addLog('ALARM', '⚠ САОЗ-НД ПУСК — Аварийное охлаждение низкого давления. Заливка зоны из баков-приямков!');
+    addAlarm('saoz-nd', 'САОЗ-НД АКТИВНА', 'red');
+    
+    // ПРЕДОТВРАЩАЕМ НАЛОЖЕНИЕ: Жестко чистим старые осцилляторы, если они зависли в фоне
+    if (typeof alarmOscillators !== 'undefined' && alarmOscillators.length > 0) {
+      stopSirenOscillators();
+    }
+    
+    playFourMinuteAlarm();
+    alarmActive = true;
+    
+    showAlert('САОЗ-НД АКТИВНА', 'Система аварийного охлаждения зоны (НД) запущена.');
+  } 
+  // === ОТКЛЮЧЕНИЕ САОЗ-НД ===
+  else {
+    state.saozND = false;
+    btn.classList.remove('active-red');
+    removeAlarm('saoz-nd');
+    
+    addLog('SYSTEM', 'САОЗ-НД отключена оператором.');
+    
+    // Глушим сирену только если САОЗ-ВД тоже выключена
+    if (!state.saozVD) {
+      stopSirenOscillators();
+    }
+  }
+}
+
+// Вспомогательная функция (убедись, что она объявлена ниже кнопок)
+function stopSirenOscillators() {
+  if (typeof alarmOscillators !== 'undefined' && alarmOscillators.length > 0) {
+    alarmOscillators.forEach(osc => {
+      try {
+        osc.stop();
+        osc.disconnect();
+      } catch (e) {
+        // Игнорируем ошибки уже остановленных узлов
+      }
+    });
+    alarmOscillators = [];
+    alarmActive = false;
+    if (typeof clearRoarSystem === 'function') clearRoarSystem();
+    addLog('SYSTEM', 'Сирена БЩУ сброшена.');
+  }
 }
 
 function pressSprinkler() {
@@ -3657,7 +3727,7 @@ function init() {
   updateAlarmDisplay();
 }
 
-// Add click handlers to all buttons to play sound
+// Add clic handlers to all buttons to play sound
 document.addEventListener('DOMContentLoaded', () => {
   init();
 });
