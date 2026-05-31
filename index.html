@@ -734,7 +734,7 @@ body::before {
 }
 
 #srppp-log-box {
-  height: 380px;
+  height: 620px;
   overflow-y: auto;
   background: #000;
   border: 1px solid var(--border-dim);
@@ -1092,7 +1092,7 @@ body::before {
 <div id="header">
   <div id="header-left">
     <div id="header-title">ВВЭР-1000 БЩУ</div>
-    <div id="header-sub">БЛОЧНЫЙ ЩИТ УПРАВЛЕНИЯ • ЭНЕРГОБЛОК №2</div>
+    <div id="header-sub">БЛОЧНЫЙ ЩИТ УПРАВЛЕНИЯ • ЭНЕРГОБЛОК №1</div>
   </div>
   <div id="header-center">
     <div id="reactor-status-main" class="normal">НОРМАЛЬНАЯ ЭКСПЛУАТАЦИЯ</div>
@@ -1810,8 +1810,8 @@ body::before {
     <span>СУЗ: 163 ТВС, 61 КА СУЗ | КД: объём 79 м³</span>
   </div>
   <div id="footer-center">
-    <div style="font-size:11px;letter-spacing:2px;color:var(--text-dim)">ЭНЕРГОБЛОК №2</div>
-    <div style="margin-top:3px;color:var(--text-muted)">СИСТЕМА УПРАВЛЕНИЯ РЕАКТОРОМ v4.2</div>
+    <div style="font-size:11px;letter-spacing:2px;color:var(--text-dim)">ЭНЕРГОБЛОК №1</div>
+    <div style="margin-top:3px;color:var(--text-muted)">СИСТЕМА УПРАВЛЕНИЯ РЕАКТОРОМ</div>
     <div style="margin-top:6px;color:var(--text-muted);font-size:9px">ОБНОВЛЕНИЕ ПАРАМЕТРОВ: 100 МС</div>
   </div>
   <div id="footer-right">
@@ -2127,6 +2127,7 @@ let state = {
   saozND: false,
   sprinkler: false,
   bzik: false,
+  ipkActive: false,
   
   // ARM
   armEnabled: false,
@@ -3010,9 +3011,8 @@ function setCartoMode(mode, btn) {
   playBtnSound();
 }
 
-// VVER-1000 163 TBS hexagonal layout
 const VVER_ROWS = [
-  5, 6, 7, 8, 9, 10, 11, 12, 13, 12, 11, 10, 9, 8, 7, 6, 5
+ 6, 9, 10, 11, 12, 13, 14, 13, 14, 13, 12, 11, 10, 9, 6
 ];
 
 function drawCartogram() {
@@ -3029,7 +3029,7 @@ function drawCartogram() {
   const power = state.neutronPower / 100;
   
   // Hex size
-  const hexR = 18; // radius
+  const hexR = 20; // radius
   const hexW = hexR * Math.sqrt(3);
   const hexH = hexR * 2;
   
@@ -3040,23 +3040,32 @@ function drawCartogram() {
   
   VVER_ROWS.forEach((count, rowIdx) => {
     const totalRows = VVER_ROWS.length;
-    const rowOffset = rowIdx - (totalRows - 1) / 2;
-    const cx = centerY + rowOffset * hexH * 0.80;
+   const rowOffset = rowIdx - (totalRows - 1) / 2;
+const cx = centerY + rowOffset * hexH * 0.80;
     
     const colOffset = -(count - 1) / 2;
     
     for (let col = 0; col < count; col++) {
-      if (tvsIdx >= 163) break;
+      // === НАЧАЛО ИСПРАВЛЕНИЯ ===
+      // Убрали жесткий break! Теперь, если кассет в сетке чуть больше 163, 
+      // код не падает, а продолжает рисовать низ, подставляя базовую мощность 1.0
+      if (!tvsPowers || tvsPowers.length === 0) {
+        tvsIdx++;
+        continue;
+      }
+      const basePower = tvsPowers[tvsIdx] !== undefined ? tvsPowers[tvsIdx] : 1.0;
+      // === КОНЕЦ ИСПРАВЛЕНИЯ ===
       
       const x = centerX + (colOffset + col) * hexW;
       const y = cx;
       
       // Determine if this is a SUZ position (simplified: ~61 positions)
-      const isSUZ = (tvsIdx % 3 === 0) && tvsIdx < 61;
+      const isSUZ = (Math.floor(Math.sin(tvsIdx * 0.45) * Math.cos(rowIdx * 0.7) * 100) % 7 === 0) || (tvsIdx === 81);
       
       // Calculate color based on mode and power
       let fillColor;
-      const localPower = tvsPowers[tvsIdx] * power;
+      // ИСПОЛЬЗУЕМ НАШУ БЕЗОПАСНУЮ basePower ВМЕСТО tvsPowers[tvsIdx]
+      const localPower = basePower * power;
       
       if (!isSUZ) {
         if (cartoMode === 'dpz') {
@@ -3075,7 +3084,8 @@ function drawCartogram() {
       }
       
       // Animate flicker slightly based on neutron noise
-      if (power > 0.01) {
+      // Анимацию шума делаем только для существующих в массиве ТВС (чтобы не плодить ошибки)
+      if (power > 0.01 && tvsPowers[tvsIdx] !== undefined) {
         const noise = 1 + (Math.random() - 0.5) * 0.05;
         tvsPowers[tvsIdx] = Math.max(0.5, Math.min(1.5, tvsPowers[tvsIdx] * noise));
       }
@@ -3374,14 +3384,40 @@ function toggleVprysk() {
 function pressIPK() {
   playBtnSound();
   initAudio();
-  addLog('ACTION', '⚠ ИПК КД — Принудительное открытие предохранительного клапана КД');
-  addLog('ALARM', 'Сброс среды в барботажный бак! Критическое падение давления 1К!');
-  state.pressure1k = Math.max(8, state.pressure1k - 2.0);
-  state.kdLevel = Math.max(0, state.kdLevel - 0.5);
-  state.radGO = state.radGO + 1.0;
-  addAlarm('ipk', 'ИПК КД ОТКРЫТ', 'red');
-  generateRoarPulse(audioCtx ? audioCtx.currentTime : 0);
-  setTimeout(() => removeAlarm('ipk'), 30000);
+  
+  const btn = document.getElementById('btn-ipk'); // Убедись, что ID кнопки именно такой
+  
+  // === ВКЛЮЧЕНИЕ (ОТКРЫТИЕ КЛАПАНА) ===
+  if (!state.ipkActive) {
+    state.ipkActive = true;
+    if (btn) btn.classList.add('active-red'); // Подсвечиваем красным в CSS
+    
+    addLog('ACTION', '⚠ ИПК КД — Принудительное открытие предохранительного клапана КД');
+    addLog('ALARM', 'Сброс среды в барботажный бак! Начинается падение давления 1К!');
+    addAlarm('ipk', 'ИПК КД ОТКРЫТ', 'red');
+    
+    // Запускаем сирену/гул аварии
+    if (typeof alarmOscillators !== 'undefined' && alarmOscillators.length > 0) {
+      stopSirenOscillators();
+    }
+    playFourMinuteAlarm(); // Или твоя функция generateRoarPulse, если хочешь именно ее
+    alarmActive = true;
+    
+    showAlert('ИПК ОТКРЫТ', 'Предохранительный клапан КД открыт вручную. Идет сброс в барботажный бак!');
+  } 
+  // === ОТКЛЮЧЕНИЕ (ЗАКРЫТИЕ КЛАПАНА) ===
+  else {
+    state.ipkActive = false;
+    if (btn) btn.classList.remove('active-red'); // Гасим подсветку
+    removeAlarm('ipk');
+    
+    addLog('SYSTEM', 'ИПК КД принудительно закрыт оператором. Давление стабилизируется.');
+    
+    // Глушим сирену, ТОЛЬКО если САОЗ и Дренаж тоже выключены
+    if (!state.saozVD && !state.saozND && !state.drainActive) {
+      stopSirenOscillators();
+    }
+  }
 }
 
 function setPodpitka(val) {
@@ -3400,13 +3436,37 @@ function toggleProduvka() {
 
 function toggleDrain() {
   playBtnSound();
+  initAudio(); // Инициализируем аудиоконтекст на случай первого клика
+  
   state.drain = !state.drain;
   const btn = document.getElementById('btn-drain');
-  btn.classList.toggle('active-red', state.drain);
-  addLog('ACTION', `Дренаж 1К в баки ЖРО: ${state.drain ? 'ОТКРЫТ — ⚠ Падение уровня КД!' : 'ЗАКРЫТ'}`);
-  if (state.drain && state.neutronPower > 1) {
-    addLog('WARNING', '⚠ Дренаж 1К при работающем реакторе — аварийная ситуация!');
-    addAlarm('drain', 'ДРЕНАЖ 1К ПРИ МОЩНОСТИ', 'red');
+  if (btn) btn.classList.toggle('active-red', state.drain);
+  
+  // === ВКЛЮЧЕНИЕ ДРЕНАЖА (ОТКРЫТИЕ СЛИВА) ===
+  if (state.drain) {
+    addLog('ACTION', 'Дренаж 1К в баки ЖРО: ОТКРЫТ — ⚠ Падение уровня КД!');
+    
+    // Запускаем сирену/гул аварии, если она ещё не воет
+    if (typeof alarmOscillators !== 'undefined' && alarmOscillators.length > 0) {
+      stopSirenOscillators();
+    }
+    playFourMinuteAlarm(); // Твоя функция запуска сирены
+    alarmActive = true;
+    
+    if (state.neutronPower > 1) {
+      addLog('WARNING', '⚠ Дренаж 1К при работающем реакторе — аварийная ситуация!');
+      addAlarm('drain', 'ДРЕНАЖ 1К ПРИ МОЩНОСТИ', 'red');
+    }
+  } 
+  // === ОТКЛЮЧЕНИЕ ДРЕНАЖА (ЗАКРЫТИЕ СЛИВА) ===
+  else {
+    addLog('ACTION', 'Дренаж 1К в баки ЖРО: ЗАКРЫТ');
+    removeAlarm('drain');
+    
+    // Проверяем: если ВСЕ аварийные кнопки (САОЗ, ИПК и Дренаж) выключены — глушим звук полностью
+    if (!state.saozVD && !state.saozND && !state.ipkActive && !state.drain) {
+      stopSirenOscillators();
+    }
   }
 }
 
@@ -3710,6 +3770,12 @@ function init() {
   // Physics loop
   physicsInterval = setInterval(() => {
     physicsStep();
+  // Проверка в физическом движке: если ИПК открыт, параметры падают каждый такт
+  if (state.ipkActive) {
+    state.pressure1k = Math.max(8.0, state.pressure1k - 0.02); // Плавное падение давления
+    state.kdLevel = Math.max(0.0, state.kdLevel - 0.005);      // Плавное падение уровня
+    state.radGO = state.radGO + 0.01;                          // Рост радиации в ГО
+  }
     updateUI();
   }, 100);
   
