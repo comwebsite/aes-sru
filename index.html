@@ -1192,10 +1192,16 @@ body::before {
           <span class="slider-val" id="suz-group-val">Гр. 1</span>
         </div>
         <select id="suz-group-select" onchange="selectSUZGroup(this.value)" style="width:100%;background:#000;border:1px solid var(--border-dim);color:var(--text);padding:4px;font-family:inherit;font-size:11px;margin-bottom:4px">
-          <option value="1">Группа 1 — Регулирующие</option>
-          <option value="2">Группа 2 — Аварийные</option>
-          <option value="3">Группа 3 — Компенсирующие</option>
-          <option value="4">Группа 4 — Дополн.</option>
+          <option value="1">Группа 1 — Аварийная защита (АЗ)</option>
+          <option value="2">Группа 2 — Аварийная защита (АЗ)</option>
+          <option value="3">Группа 3 — Аварийная защита (АЗ)</option>
+          <option value="4">Группа 4 — Аварийная защита (АЗ)</option>
+		  <option value="5">Группа 5 — Компенсация реактивности (КР)</option>
+          <option value="6">Группа 6 — Компенсация реактивности (КР)</option>
+          <option value="7">Группа 7 — Компенсация реактивности (КР)</option>
+          <option value="8">Группа 8 — Компенсация реактивности (КР)</option>
+		  <option value="9">Группа 9 — Компенсация реактивности (КР)</option>
+          <option value="10">Группа 10 — Автоматическое регулирование (АР)</option>
         </select>
       </div>
 
@@ -2079,10 +2085,11 @@ let state = {
   reactivity: 0,
   period: Infinity,
   
-  // SUZ
-  suzPosition: 0,         // % 0=погружен, 100=поднят
-  suzGroup: 1,
-  suzRods: Array(61).fill(0), // rod positions 0-100
+  suzGroup: 10,
+  suzGroupsPercent: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+  get suzPosition() {
+    return this.suzGroupsPercent[this.suzGroup - 1];
+  },
   
   // GCN
   gcn: [false, false, false, false],
@@ -2433,7 +2440,21 @@ function physicsStep() {
   
   // SUZ position -> reactivity
   // Each % of rod withdrawal = +0.0002 reactivity (simplified)
-  const suzReactivity = (state.suzPosition - 50) * 0.0002;
+  // === ДВИЖЕНИЕ ВЫБРАННОЙ ГРУППЫ СУЗ ===
+  if (state.suzMoving !== 0) {
+    const speed = 0.5; // Скорость подъема за один такт
+    const activeIndex = state.suzGroup - 1; // Индекс в массиве (0-9)
+
+    // Изменяем процент ТОЛЬКО для выбранной группы
+    let currentPos = state.suzGroupsPercent[activeIndex] + (state.suzMoving * speed);
+    state.suzGroupsPercent[activeIndex] = Math.max(0, Math.min(100, currentPos));
+  }
+
+  // === РАСЧЕТ СРЕДНЕГО ПОЛОЖЕНИЯ ДЛЯ РЕАКТИВНОСТИ ===
+  const totalSum = state.suzGroupsPercent.reduce((a, b) => a + b, 0);
+  const averageSUZ = totalSum / 10; // Средний процент по всем 10 группам
+
+  const suzReactivity = (averageSUZ - 50) * 0.0002;
   
   // Bor reactivity contribution
   const borReactivity = -(state.borConc - 4) * 0.001;
@@ -3227,14 +3248,28 @@ function stopSUZMove() {
 
 function stepSUZ() {
   playBtnSound();
-  state.suzPosition = Math.min(100, state.suzPosition + 1);
-  addLog('ACTION', `Шаговый ход СУЗ +1. Позиция: ${state.suzPosition.toFixed(1)}%`);
+  const activeIndex = state.suzGroup - 1;
+  
+  // Меняем цифру строго в ячейке памяти активной группы
+  state.suzGroupsPercent[activeIndex] = Math.min(100, state.suzGroupsPercent[activeIndex] + 1);
+  
+  addLog('ACTION', `Шаг СУЗ +1% для Группы №${state.suzGroup}. Положение: ${state.suzPosition.toFixed(1)}%`);
 }
 
 function selectSUZGroup(val) {
   playBtnSound();
-  state.suzGroup = parseInt(val);
-  addLog('ACTION', `Выбрана группа СУЗ №${val}`);
+  state.suzGroup = parseInt(val); // Запоминаем, на какую группу переключился оператор
+  
+  // Обновляем текст «Гр. X» на панели БЩУ
+  const valDisplay = document.getElementById('suz-group-val');
+  if (valDisplay) {
+    valDisplay.textContent = `Гр. ${val}`;
+  }
+  
+  // Принудительно обновляем UI, чтобы мгновенно показать сохраненную цифру этой группы!
+  if (typeof updateUI === 'function') updateUI(); 
+  
+  addLog('ACTION', `Выбрана группа СУЗ №${val}. Сохраненное положение: ${state.suzPosition.toFixed(1)}%`);
 }
 
 function setARMSetpoint(val) {
